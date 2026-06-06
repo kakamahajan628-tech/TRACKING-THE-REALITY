@@ -32,12 +32,12 @@ class ProductionConfig:
         self.chat_id: Optional[str] = os.environ.get("TELEGRAM_CHAT_ID")
         self.token: Optional[str] = os.environ.get("TELEGRAM_BOT_TOKEN")
         self.active_exchanges = []
-        self.semaphore = asyncio.Semaphore(5)  # Global Concurrency Limit
-        self.symbol_locks = {s: asyncio.Lock() for s in self.tracked_symbols} # Race Condition Firewall
+        self.semaphore = asyncio.Semaphore(5)  
+        self.symbol_locks = {s: asyncio.Lock() for s in self.tracked_symbols} 
         self.risk_per_trade_usd = 50.0
         self.max_notional_value_usd = 5000.0
         self.min_stop_distance_pct = 0.25 
-        self.max_trade_age_seconds = 172800 # 48-Hour Hard Cut
+        self.max_trade_age_seconds = 172800 
 
 config = ProductionConfig()
 
@@ -120,7 +120,7 @@ class SovereignAsyncDatabase:
         wr = (wins / max(wins + losses, 1)) * 100
         profit_factor = (float(wins * 2.5) / max(losses, 1))
         
-        return {"status_text": f"📋 *System Performance Analytics (Titan V20):*\nTotal Trades Processed: `{total}`\nActive Wins: `{wins}` | Losses: `{losses}`\nTemporal Expirations: `{expired}`\nWin-Rate (Closed): `{wr:.2f}%`\nProfit Factor Score: `{profit_factor:.2f}`"}
+        return {"status_text": f"📋 *System Performance Analytics (Titan V20.1):*\nTotal Trades Processed: `{total}`\nActive Wins: `{wins}` | Losses: `{losses}`\nTemporal Expirations: `{expired}`\nWin-Rate (Closed): `{wr:.2f}%`\nProfit Factor Score: `{profit_factor:.2f}`"}
 
     async def query_bayesian_weights(self) -> Dict[str, float]:
         base_weights = {"BIAS": 25.0, "SWEEP": 25.0, "CHOCH": 25.0, "OB": 15.0, "FVG": 10.0}
@@ -196,7 +196,7 @@ class MarketStructureEngine:
         last_confirmed_sl = rolling_min.iloc[-2]
         
         if pd.isna(last_confirmed_sh) or pd.isna(last_confirmed_sl):
-            return df, {"last_hl": None, "dealing_high": h.max(), "dealing_low": l.min(), "sweep": False, "bos": False, "ob": False, "fvg": False}
+            return df, {"last_hl": None, "dealing_high": h.max(), "dealing_low": l.min(), "sweep_confirmed": False, "bos_confirmed": False, "ob_active": False, "fvg_valid": False}
             
         fvg_valid = (l.shift(2) > h).iloc[-2]
         true_liquidity_sweep = (h.iloc[-2] > last_confirmed_sh) and (c.iloc[-2] < last_confirmed_sh)
@@ -273,12 +273,10 @@ class CompleteSentinelEngine:
         self.structure_engine = MarketStructureEngine()
 
     async def process_market_execution(self, symbol: str, price_cache: Dict[str, float]) -> Optional[Dict]:
-        """Processes signals and natively maps metadata outputs cleanly for the /matrix audit call."""
         if symbol not in config.symbol_locks:
             config.symbol_locks[symbol] = asyncio.Lock()
 
         async with config.symbol_locks[symbol]: 
-            okx_ex, gate_ex = config.active_exchanges[0], config.active_exchanges[1]
             l_data, h_data, i_data, selected_ex_id = None, None, None, None
             
             async with config.semaphore:
@@ -297,7 +295,7 @@ class CompleteSentinelEngine:
                 df_itf = pd.DataFrame(i_data, columns=['t','o','h','l','c','v'])
 
                 atr_series = MarketStructureEngine.calculate_true_atr(df_ltf)
-                atr_now = atr_series.iloc[-2]
+                atr_now = atr_series.rolling(14).mean().iloc[-2]
                 atr_ma_20 = atr_series.rolling(20).mean().iloc[-2]
 
                 if pd.isna(atr_now) or pd.isna(atr_ma_20): return None
@@ -317,11 +315,10 @@ class CompleteSentinelEngine:
                 in_premium = live_market_rate > ((smc["dealing_high"] + smc["dealing_low"]) / 2)
                 calibrated_weights = await db.query_bayesian_weights()
                 
-                # Evaluation Metrics Mapping Block
                 f_matrix = {"bias": 1 if in_premium else 0, "sweep": 1 if smc["sweep_confirmed"] else 0, "choch": 1 if smc["bos_confirmed"] else 0, "ob": 1 if smc["ob_active"] else 0, "fvg": 1 if smc["fvg_valid"] else 0}
                 confidence_index = (f_matrix["bias"] * calibrated_weights["BIAS"] + f_matrix["sweep"] * calibrated_weights["SWEEP"] + f_matrix["choch"] * calibrated_weights["CHOCH"] + f_matrix["ob"] * calibrated_weights["OB"] + f_matrix["fvg"] * calibrated_weights["FVG"])
 
-                # Handle background automated execution triggers natively
+                # INSTANT SIGNAL DISPATCH ENGINE
                 if confidence_index >= 55.0 and htf_trend_aligned and (atr_now > atr_ma_20) and not await db.check_duplicate_open_trades(symbol) and await db.check_active_cooldown(symbol):
                     execution_date_token = datetime.now(timezone.utc).strftime('%Y-%m-%d_%H')
                     if await db.verify_and_lock_signal_hash(f"{symbol}_SHORT_{execution_date_token}"):
@@ -335,25 +332,27 @@ class CompleteSentinelEngine:
                             await db.enforce_cooldown_lock(symbol)
                             
                             await send_telegram_alert(
-                                f"🦅 *SOVEREIGN TITANIUM VECTOR TRIGGERED*\n"
+                                f"🦅 *SOVEREIGN TITANIUM SIGNAL TRIGGERED*\n"
                                 f"========================================\n"
                                 f"• *Asset Node:* `{symbol}` | *Source:* `{selected_ex_id}`\n"
                                 f"• *Confidence Index:* `{confidence_index:.2f}%` | *Validation: Verified*\n"
                                 f"----------------------------------------\n"
                                 f"➔ *Execution Entry Base:* `{live_market_rate}`\n"
-                                f"➔ *SL Protection Boundary:* `{sl_target:.2f}` | *TP Target:* `{tp_target:.2f}`\n"
+                                f"➔ *SL Protection Zone:* `{sl_target:.2f}`\n"
+                                f"➔ *TP Absolute Target:* `{tp_target:.2f}`\n"
+                                f"➔ *Allocation Sizing:* `{units_size:.4f}` Units\n"
                                 f"========================================\n"
                             )
 
-                return {"symbol": symbol, "source": selected_ex_id, "score": confidence_index, "smc": smc, "premium": in_premium}
+                return {"symbol": symbol, "source": selected_ex_id, "score": confidence_index, "smc": smc, "premium": in_premium, "trend": htf_trend_aligned}
 
 # ========================================================
-# 6. CORE COMMANDS CONTROL CENTER (Fully Enabled)
+# 6. CORE COMMANDS CONTROL CENTER
 # ========================================================
 async def tg_start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if str(update.effective_chat.id) != config.chat_id: return
     msg = (
-        "🦅 *QUANTUM-SENTINEL V20 SYSTEM ACTIVE*\n"
+        "🦅 *QUANTUM-SENTINEL V20.1 HEARTBEAT UP*\n"
         "========================================\n"
         "Framework Command Access Layer:\n\n"
         "🔹 `/add COIN` - Queue tracking node (e.g., `/add SOL/USDT`)\n"
@@ -366,41 +365,29 @@ async def tg_start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def tg_add_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if str(update.effective_chat.id) != config.chat_id: return
-    if not context.args:
-        await update.message.reply_text("⚠️ Syntax error. Use: `/add SOL/USDT`")
-        return
+    if not context.args: return
     coin = context.args[0].upper()
     if coin not in config.tracked_symbols:
         config.tracked_symbols.append(coin)
         config.symbol_locks[coin] = asyncio.Lock()
-        await update.message.reply_text(f"✅ Structural tracker active for coordinate node: *{coin}*", parse_mode="Markdown")
-    else:
-        await update.message.reply_text(f"⚠️ Vector token *{coin}* is already linked.")
+        await update.message.reply_text(f"✅ Structural tracker active for: *{coin}*", parse_mode="Markdown")
 
 async def tg_remove_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if str(update.effective_chat.id) != config.chat_id: return
-    if not context.args:
-        await update.message.reply_text("⚠️ Syntax error. Use: `/remove ETH/USDT`")
-        return
+    if not context.args: return
     coin = context.args[0].upper()
     if coin in config.tracked_symbols:
         config.tracked_symbols.remove(coin)
-        await update.message.reply_text(f"❌ Dropped target node *{coin}* from active processing stack.", parse_mode="Markdown")
-    else:
-        await update.message.reply_text(f"⚠️ Vector node *{coin}* could not be located.")
+        await update.message.reply_text(f"❌ Dropped target node *{coin}*", parse_mode="Markdown")
 
 async def tg_list_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if str(update.effective_chat.id) != config.chat_id: return
-    if not config.tracked_symbols:
-        await update.message.reply_text("📋 Operational registry queue is blank.")
-        return
     active_tokens = "\n".join([f"   ↳ Code Node: `{token}`" for token in config.tracked_symbols])
     await update.message.reply_text(f"📋 *Active Operational Processing Registry:*\n\n{active_tokens}", parse_mode="Markdown")
 
 async def tg_matrix_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Generates cross-exchange evaluation snapshots asynchronously without interface hanging flaws."""
     if str(update.effective_chat.id) != config.chat_id: return
-    await update.message.reply_text("🔍 *Deep-scanning OKX & Gate.io Orderbooks... Processing Multi-Exchange Alpha Matrix.*", parse_mode="Markdown")
+    await update.message.reply_text("🔍 *Deep-scanning OKX & Gate.io Orderbooks...*", parse_mode="Markdown")
     
     primary_exchange = config.active_exchanges[0]
     global_price_cache = {}
@@ -422,9 +409,8 @@ async def tg_matrix_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         fvg_status = "🎯 Imbalance Active (Unfilled Pocket)" if res["smc"]["fvg_valid"] else "✅ Balanced Price Delivery"
 
         report_layout = (
-            f"🔬 *SENTINEL QUANTUM V20 DUAL AUDIT: {symbol}*\n"
+            f"🔬 *SENTINEL QUANTUM V20.1 DUAL AUDIT: {symbol}*\n"
             f"========================================\n"
-            f"🛰️ *Inbound Source:* `{res['source']}`\n"
             f"🧠 *Bayesian Matrix Score:* `{res['score']:.2f}%` / 100%\n"
             f"----------------------------------------\n"
             f"📈 *Structural State Engine:* {choch_status}\n"
@@ -459,19 +445,14 @@ async def lifespan(app: FastAPI):
         tg.add_handler(CommandHandler("stats", query_performance_telemetry))
         
         await tg.initialize()
-        
-        # CRITICAL HOOK: Delete webhooks and enforce 2-second sleep to clear Telegram API internal lock pools
         await tg.bot.delete_webhook(drop_pending_updates=True)
         await asyncio.sleep(2)
-        logger.info("🗑️ Pre-flight validation: Expired Telegram webhook sessions flushed cleanly with a 2s safety buffer.")
         
         await tg.start()
         await tg.updater.start_polling(drop_pending_updates=True)
         config.tg_app = tg
         logger.info("📡 Outbound Telegram Logistics Engine bound successfully with input routing active.")
-        
-        try:
-            await send_telegram_alert("🦅 *QUANTUM-SENTINEL V20 HARDENED CORE UP AND RUNNING*")
+        try: await send_telegram_alert("🦅 *QUANTUM-SENTINEL V20.1 HEARTBEAT ACTIVE*")
         except Exception: pass
         
     loop_task = asyncio.create_task(core_processing_loop())
@@ -488,15 +469,14 @@ async def lifespan(app: FastAPI):
         
     for ex in config.active_exchanges: await ex.close()
     await db.close_pool() 
-    logger.info("🛑 Sovereign core engine completely unmounted. Port constraints released cleanly.")
 
 async def core_processing_loop():
+    """5-Minute Heartbeat Loop reporting live matrix stats every cycle."""
     engine = CompleteSentinelEngine()
     while True:
         try:
             if not config.active_exchanges:
-                await asyncio.sleep(5)
-                continue
+                await asyncio.sleep(5); continue
                 
             primary_exchange = config.active_exchanges[0]
             global_price_cache = {}
@@ -506,7 +486,22 @@ async def core_processing_loop():
                     global_price_cache[token] = float(ticker_data['last'])
                 except Exception: pass
             
-            await asyncio.gather(*[engine.process_market_execution(s, global_price_cache) for s in list(config.tracked_symbols)])
+            # Run calculations across tokens
+            heartbeat_lines = []
+            allowed_session, session_name = SessionKillzoneFilter.check_killzone()
+            
+            for s in list(config.tracked_symbols):
+                res = await engine.process_market_execution(s, global_price_cache)
+                if res:
+                    trend_status = "🟢" if res["trend"] else "🔴"
+                    heartbeat_lines.append(f"• `{res['symbol']}`: Price: `{global_price_cache.get(s)}` | Score: `{res['score']:.1f}%` | Trend: {trend_status}")
+            
+            # Dispatches live updates directly onto your telegram node every 5 mins
+            if heartbeat_lines:
+                session_header = f"📊 *[SYSTEM HEARTBEAT - {session_name}]*\n" if allowed_session else "📊 *[SYSTEM HEARTBEAT - OUTSIDE KILLZONE]*\n"
+                heartbeat_msg = session_header + "\n".join(heartbeat_lines) + f"\n\n⏱️ _Next automated core audit sequence in 5 minutes..._"
+                await send_telegram_alert(heartbeat_msg)
+
             await TradeLifecycleMonitor.audit_active_positions(global_price_cache)
         except Exception as err:
             logger.error(f"Sovereign scheduler loop encounter: {str(err)}")
@@ -514,6 +509,6 @@ async def core_processing_loop():
 
 app = FastAPI(lifespan=lifespan)
 @app.api_route("/", methods=["GET", "HEAD"])
-def live_health_proxy(): return {"status": "ONLINE", "framework": "Sovereign Core V20 Pro Enabled"}
+def live_health_proxy(): return {"status": "ONLINE", "framework": "Sovereign Core V20.1 Pro Enabled"}
 
 if __name__ == "__main__": uvicorn.run("bot:app", host="0.0.0.0", port=int(os.environ.get("PORT", 10000)), workers=1)
