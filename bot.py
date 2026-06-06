@@ -6,93 +6,117 @@ import asyncio
 import sqlite3
 import uvicorn
 from fastapi import FastAPI
+from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from typing import List, Dict, Optional, Tuple
 
 # ==========================================
-# FastAPI Engine Configuration
+# 0. ENGINE SCHEDULER LIFESPAN CONTAINER
 # ==========================================
-app = FastAPI()
-bot_engine = None  # Placeholder for master async reference
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Orchestrates safe concurrent startup and shutdown of the quantitative engine."""
+    print("\n" + "="*60)
+    print(" 🔥 THE QUANT-SENTINEL V8 OKX CLOUD CORE BOOTING 🔥")
+    print("="*60)
+    
+    engine = CompleteSentinelEngine()
+    task = asyncio.create_task(engine.engine_core_loop())
+    
+    yield  
+    
+    task.cancel()
+    try:
+        await task
+    except asyncio.CancelledError:
+        print("🛑 Engine context cleanly unmounted on container teardown.")
 
-@app.get("/")
+app = FastAPI(lifespan=lifespan)
+
+# FIXED: Replaced @app.get with api_route to accept both HEAD and GET requests seamlessly
+@app.api_route("/", methods=["GET", "HEAD"])
 def health_check():
-    """Satisfies Render's strict HTTP ping requirement instantly."""
+    """Satisfies Render's web service health check router loops instantly."""
     return {
-        "status": "ONLINE",
-        "engine": "The Quantum-Sentinel V8 PRO",
+        "status": "HEALTHY",
+        "engine": "The Quantum-Sentinel V8 OKX Cloud Pro",
         "timestamp": datetime.now(timezone.utc).isoformat()
     }
 
 # ==========================================
-# 1. PERSISTENCE MODULE (Database Layer)
+# 1. DATABASE LAYERS
 # ==========================================
 class AdvancedSignalDatabase:
     def __init__(self, db_name="sentinel_quantum_v8.db"):
-        self.db_name = db_name
+        self.db_name = os.path.join(os.getcwd(), db_name)
         self._init_db()
 
     def _init_db(self):
-        with sqlite3.connect(self.db_name) as conn:
-            cursor = conn.cursor()
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS quantitative_journal (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    timestamp TEXT, symbol TEXT, direction TEXT,
-                    entry_price REAL, stop_loss REAL, take_profit REAL,
-                    final_pnl REAL, trade_status TEXT,
-                    feature_choch INTEGER, feature_sweep INTEGER,
-                    feature_ob INTEGER, feature_fvg INTEGER, feature_premium INTEGER,
-                    calculated_confidence REAL
-                )
-            """)
-            conn.commit()
+        try:
+            with sqlite3.connect(self.db_name) as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS quantitative_journal (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        timestamp TEXT, symbol TEXT, direction TEXT,
+                        entry_price REAL, stop_loss REAL, take_profit REAL,
+                        final_pnl REAL, trade_status TEXT,
+                        feature_choch INTEGER, feature_sweep INTEGER,
+                        feature_ob INTEGER, feature_fvg INTEGER, feature_premium INTEGER,
+                        calculated_confidence REAL
+                    )
+                """)
+                conn.commit()
+        except Exception as db_err:
+            print(f"⚠️ Persistence engine warning: {str(db_err)}")
 
     def log_trade_intent(self, symbol: str, direction: str, entry: float, sl: float, tp: float, conf: float, f_matrix: Dict):
-        with sqlite3.connect(self.db_name) as conn:
-            cursor = conn.cursor()
-            cursor.execute("""
-                INSERT INTO quantitative_journal (
-                    timestamp, symbol, direction, entry_price, stop_loss, take_profit,
-                    final_pnl, trade_status, feature_choch, feature_sweep, feature_ob,
-                    feature_fvg, feature_premium, calculated_confidence
-                ) VALUES (?, ?, ?, ?, ?, ?, 0.0, 'OPEN', ?, ?, ?, ?, ?, ?)
-            """, (datetime.now(timezone.utc).isoformat(), symbol, direction, entry, sl, tp,
-                  f_matrix["choch"], f_matrix["sweep"], f_matrix["ob"], f_matrix["fvg"], f_matrix["bias"], conf))
-            conn.commit()
+        try:
+            with sqlite3.connect(self.db_name) as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    INSERT INTO quantitative_journal (
+                        timestamp, symbol, direction, entry_price, stop_loss, take_profit,
+                        final_pnl, trade_status, feature_choch, feature_sweep, feature_ob,
+                        feature_fvg, feature_premium, calculated_confidence
+                    ) VALUES (?, ?, ?, ?, ?, ?, 0.0, 'OPEN', ?, ?, ?, ?, ?, ?)
+                """, (datetime.now(timezone.utc).isoformat(), symbol, direction, entry, sl, tp,
+                      f_matrix["choch"], f_matrix["sweep"], f_matrix["ob"], f_matrix["fvg"], f_matrix["bias"], conf))
+                conn.commit()
+        except Exception as log_err:
+            print(f"❌ Core journal write warning: {str(log_err)}")
 
     def query_bayesian_weights(self) -> Dict[str, float]:
         base_weights = {"BIAS": 20.0, "SWEEP": 20.0, "CHOCH": 25.0, "OB": 15.0, "FVG": 20.0}
         try:
             with sqlite3.connect(self.db_name) as conn:
                 df = pd.read_sql_query("SELECT * FROM quantitative_journal WHERE trade_status = 'CLOSED'", conn)
+            if df.empty: return base_weights
+            
+            prior_win_rate = 0.50
+            m_weight = 10.0
+            calculated_weights = {}
+            features = {"feature_choch": "CHOCH", "feature_sweep": "SWEEP", "feature_ob": "OB", "feature_fvg": "FVG", "feature_premium": "BIAS"}
+            
+            for db_col, weight_name in features.items():
+                feature_trades = df[df[db_col] == 1]
+                total_trades = len(feature_trades)
+                if total_trades > 0:
+                    wins = len(feature_trades[feature_trades['final_pnl'] > 0])
+                    bayesian_wr = (wins + (prior_win_rate * m_weight)) / (total_trades + m_weight)
+                    calculated_weights[weight_name] = float(bayesian_wr * 100)
+                else:
+                    calculated_weights[weight_name] = base_weights[weight_name]
+                    
+            total_sum = sum(calculated_weights.values())
+            for k in calculated_weights:
+                calculated_weights[k] = (calculated_weights[k] / total_sum) * 100
+            return calculated_weights
         except Exception:
             return base_weights
-        if df.empty:
-            return base_weights
-            
-        prior_win_rate = 0.50
-        m_weight = 10.0
-        calculated_weights = {}
-        features = {"feature_choch": "CHOCH", "feature_sweep": "SWEEP", "feature_ob": "OB", "feature_fvg": "FVG", "feature_premium": "BIAS"}
-        
-        for db_col, weight_name in features.items():
-            feature_trades = df[df[db_col] == 1]
-            total_trades = len(feature_trades)
-            if total_trades > 0:
-                wins = len(feature_trades[feature_trades['final_pnl'] > 0])
-                bayesian_wr = (wins + (prior_win_rate * m_weight)) / (total_trades + m_weight)
-                calculated_weights[weight_name] = float(bayesian_wr * 100)
-            else:
-                calculated_weights[weight_name] = base_weights[weight_name]
-                
-        total_sum = sum(calculated_weights.values())
-        for k in calculated_weights:
-            calculated_weights[k] = (calculated_weights[k] / total_sum) * 100
-        return calculated_weights
 
 # ========================================================
-# 2. STRUCTURAL AND ALGORITHMIC LOGIC ENGINES
+# 2. QUANT MATHEMATICAL & GEOMETRIC DETECTORS
 # ========================================================
 class StructuralStateEngine:
     def __init__(self, sensitivity: int = 3):
@@ -221,18 +245,18 @@ class SessionKillzoneFilter:
         return False, "OUTSIDE_KILLZONE"
 
 # ========================================================
-# 4. CORE ENGINE ORCHESTRATOR
+# 4. CORE PIPELINE CORE MANAGER
 # ========================================================
 class CompleteSentinelEngine:
     def __init__(self):
         self.db = AdvancedSignalDatabase()
         self.structure_engine = StructuralStateEngine()
+        # FIXED: Changed Binance style pairs to OKX Spot/Futures uniform notation
         self.tracked_symbols = ["BTC/USDT", "ETH/USDT"]
 
     async def process_market_execution(self, symbol: str, exchange: ccxt.Exchange):
         allowed, session_name = SessionKillzoneFilter.check_killzone()
         if not allowed:
-            print(f"⏳ [SESSION_GUARD] Skipping {symbol} (Hour UTC: {datetime.now(timezone.utc).hour}). Outside Volume Killzone.")
             return
 
         try:
@@ -290,45 +314,31 @@ class CompleteSentinelEngine:
                 print(f"➔ Execution Matrix -> Entry: {entry} | SL: {sl:.2f} | TP: {tp:.2f}")
                 print(f"📊 BAYESIAN RESOLUTION CONFLUENCE: {confidence_index:.2f}% CONFIDENCE.")
                 print(f"==========================================================\n")
-            else:
-                print(f"⏳ [SCANNER] {symbol} | Matrix Score: {confidence_index:.2f}% | Searching setup...")
         except Exception as err:
             print(f"❌ [CRITICAL PIPELINE ERROR] Asset {symbol} context faulted: {str(err)}")
 
     async def engine_core_loop(self):
-        """Quant Execution loop tied directly to FastAPI life cycle parameters."""
+        """Infinite tracking execution loop syncing historical price series charts."""
         print("\n" + "="*60)
-        print(" 🔥 THE QUANT-SENTINEL V8 MASTER CORE INITIALIZED 🔥")
-        print("="*60)
-        print(f"➔ Boot Timestamp : {datetime.now(timezone.utc).isoformat()}")
-        print("➔ Engine Sandbox : Multi-Timeframe Bayesian Optimization Active")
+        print(" 🚀 THE QUANT-SENTINEL V8 SYSTEM STATUS: ENGINE ACTIVE 🚀")
         print("="*60 + "\n")
 
-        # Public Client Initialization for fallback structural mapping safety
-        exchange_client = ccxt.binance({"enableRateLimit": True})
+        # FIXED: Shifted from ccxt.binance() to ccxt.okx() to bypass cloud region ban firewalls
+        exchange_client = ccxt.okx({"enableRateLimit": True})
         try:
             while True:
                 for symbol in self.tracked_symbols:
                     await self.process_market_execution(symbol, exchange_client)
-                await asyncio.sleep(300)  # 5 Minute Ticks Scan Pipeline
+                await asyncio.sleep(300)
         except Exception as loop_err:
             print(f"💥 Engine Loop Broken: {str(loop_err)}")
         finally:
             await exchange_client.close()
 
 # ========================================================
-# 5. ASYNC LIFECYCLE ROUTER (FIXES RENDER APP SHUTDOWN)
+# 5. EXPLICIT RUN PROTOCOL USING THE CORRECT INVOCATION
 # ========================================================
-@app.on_event("startup")
-async def start_quant_pipelines():
-    """Triggers the infinite background loop inside FastAPI's native async stream."""
-    global bot_engine
-    bot_engine = CompleteSentinelEngine()
-    # Schedules execution as a concurrent background task without disrupting Uvicorn port listener
-    asyncio.create_task(bot_engine.engine_core_loop())
-
 if __name__ == "__main__":
-    # Pull dynamic port binding mapped directly by Render cloud environment
     port_allocated = int(os.environ.get("PORT", 10000))
-    print(f"📡 Launching Production Gateway Server on Port: {port_allocated}")
-    uvicorn.run(app, host="0.0.0.0", port=port_allocated)
+    print(f"📡 System Engine Binding Server Proxy onto Port: {port_allocated}")
+    uvicorn.run("bot:app", host="0.0.0.0", port=port_allocated, workers=1)
