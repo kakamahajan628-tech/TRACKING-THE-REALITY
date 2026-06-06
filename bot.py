@@ -120,7 +120,7 @@ class SovereignAsyncDatabase:
         wr = (wins / max(wins + losses, 1)) * 100
         profit_factor = (float(wins * 2.5) / max(losses, 1))
         
-        return {"status_text": f"📋 *System Performance Analytics (Titan V20.1):*\nTotal Trades Processed: `{total}`\nActive Wins: `{wins}` | Losses: `{losses}`\nTemporal Expirations: `{expired}`\nWin-Rate (Closed): `{wr:.2f}%`\nProfit Factor Score: `{profit_factor:.2f}`"}
+        return {"status_text": f"📋 *System Performance Analytics (Titan V20.2):*\nTotal Trades Processed: `{total}`\nActive Wins: `{wins}` | Losses: `{losses}`\nTemporal Expirations: `{expired}`\nWin-Rate (Closed): `{wr:.2f}%`\nProfit Factor Score: `{profit_factor:.2f}`"}
 
     async def query_bayesian_weights(self) -> Dict[str, float]:
         base_weights = {"BIAS": 25.0, "SWEEP": 25.0, "CHOCH": 25.0, "OB": 15.0, "FVG": 10.0}
@@ -344,7 +344,7 @@ class CompleteSentinelEngine:
                                 f"========================================\n"
                             )
 
-                return {"symbol": symbol, "source": selected_ex_id, "score": confidence_index, "smc": smc, "premium": in_premium, "trend": htf_trend_aligned}
+                return {"symbol": symbol, "source": selected_ex_id, "score": confidence_index, "smc": smc, "premium": in_premium, "trend": htf_trend_aligned, "matrix": f_matrix, "atr_valid": (atr_now > atr_ma_20)}
 
 # ========================================================
 # 6. CORE COMMANDS CONTROL CENTER
@@ -352,7 +352,7 @@ class CompleteSentinelEngine:
 async def tg_start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if str(update.effective_chat.id) != config.chat_id: return
     msg = (
-        "🦅 *QUANTUM-SENTINEL V20.1 HEARTBEAT UP*\n"
+        "🦅 *QUANTUM-SENTINEL V20.2 GRANULAR ACTIVE*\n"
         "========================================\n"
         "Framework Command Access Layer:\n\n"
         "🔹 `/add COIN` - Queue tracking node (e.g., `/add SOL/USDT`)\n"
@@ -402,22 +402,24 @@ async def tg_matrix_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         res = await engine.process_market_execution(symbol, global_price_cache)
         if not res: continue
         
-        bias_status = "🔴 Premium Invalidation Zone" if res["premium"] else "🟢 Discount Accumulation Zone"
-        sweep_status = "🔥 POSITIVE (Stop Hunt Verified)" if res["smc"]["sweep_confirmed"] else "❌ Negative (No Clustered Hunt)"
-        choch_status = "⚡ CHOCH Shift Confirmed" if res["smc"]["bos_confirmed"] else "⏳ Consolidation Equilibrium Balance"
-        ob_status = "🏰 Active Order Block Mitigation" if res["smc"]["ob_active"] else "❌ Inactive Institutional Presence"
-        fvg_status = "🎯 Imbalance Active (Unfilled Pocket)" if res["smc"]["fvg_valid"] else "✅ Balanced Price Delivery"
+        bias_status = "🟢 Premium" if res["premium"] else "❌ Discount"
+        sweep_status = "🟢 Swept" if res["matrix"]["sweep"] else "❌ No Sweep"
+        choch_status = "🟢 BOS Break" if res["matrix"]["choch"] else "❌ No Break"
+        ob_status = "🟢 OB Mitigated" if res["matrix"]["ob"] else "❌ No OB Presence"
+        fvg_status = "🟢 FVG Active" if res["matrix"]["fvg"] else "❌ Balanced Pricing"
+        trend_status = "🟢 Aligned" if res["trend"] else "❌ Misaligned"
 
         report_layout = (
-            f"🔬 *SENTINEL QUANTUM V20.1 DUAL AUDIT: {symbol}*\n"
+            f"🔬 *SENTINEL QUANTUM SNAPSHOT: {symbol}*\n"
             f"========================================\n"
             f"🧠 *Bayesian Matrix Score:* `{res['score']:.2f}%` / 100%\n"
             f"----------------------------------------\n"
-            f"📈 *Structural State Engine:* {choch_status}\n"
-            f"🎯 *Liquidity Cluster Pool:* {sweep_status}\n"
-            f"🏰 *Institutional Order Block:* {ob_status}\n"
-            f"🌊 *FVG Imbalance Lifecycle:* {fvg_status}\n"
-            f"🎚️ *Dealing Range Evaluation:* {bias_status}\n"
+            f"📈 *HTF Trend Matrix:* {trend_status}\n"
+            f"🎚️ *Dealing Bias (Premium):* {bias_status}\n"
+            f"🎯 *Liquidity Pool Sweep:* {sweep_status}\n"
+            f"⚡ *Structural Continuation:* {choch_status}\n"
+            f"🏰 *Institutional Block:* {ob_status}\n"
+            f"🌊 *FVG Imbalance Pocket:* {fvg_status}\n"
             f"========================================\n"
         )
         await update.message.reply_text(report_layout, parse_mode="Markdown")
@@ -451,8 +453,8 @@ async def lifespan(app: FastAPI):
         await tg.start()
         await tg.updater.start_polling(drop_pending_updates=True)
         config.tg_app = tg
-        logger.info("📡 Outbound Telegram Logistics Engine bound successfully with input routing active.")
-        try: await send_telegram_alert("🦅 *QUANTUM-SENTINEL V20.1 HEARTBEAT ACTIVE*")
+        logger.info("📡 Outbound Telegram Logistics Engine bound successfully.")
+        try: await send_telegram_alert("🦅 *QUANTUM-SENTINEL V20.2 GRANULAR REPORTING LIVE*")
         except Exception: pass
         
     loop_task = asyncio.create_task(core_processing_loop())
@@ -471,7 +473,7 @@ async def lifespan(app: FastAPI):
     await db.close_pool() 
 
 async def core_processing_loop():
-    """5-Minute Heartbeat Loop reporting live matrix stats every cycle."""
+    """5-Minute Loop reporting ultra-granular sub-factor metrics for ALL tokens."""
     engine = CompleteSentinelEngine()
     while True:
         try:
@@ -486,21 +488,39 @@ async def core_processing_loop():
                     global_price_cache[token] = float(ticker_data['last'])
                 except Exception: pass
             
-            # Run calculations across tokens
-            heartbeat_lines = []
             allowed_session, session_name = SessionKillzoneFilter.check_killzone()
+            session_header = f"📊 *[SYSTEM HEARTBEAT - {session_name}]*\n========================================\n" if allowed_session else "📊 *[SYSTEM HEARTBEAT - OUTSIDE KILLZONE]*\n========================================\n"
             
+            token_reports = []
             for s in list(config.tracked_symbols):
                 res = await engine.process_market_execution(s, global_price_cache)
                 if res:
-                    trend_status = "🟢" if res["trend"] else "🔴"
-                    heartbeat_lines.append(f"• `{res['symbol']}`: Price: `{global_price_cache.get(s)}` | Score: `{res['score']:.1f}%` | Trend: {trend_status}")
+                    # Formatting checkmarks based on raw true boolean evaluations
+                    trend_icon = "🟢" if res["trend"] else "❌"
+                    bias_icon = "🟢" if res["premium"] else "❌"
+                    sweep_icon = "🟢" if res["matrix"]["sweep"] else "❌"
+                    choch_icon = "🟢" if res["matrix"]["choch"] else "❌"
+                    ob_icon = "🟢" if res["matrix"]["ob"] else "❌"
+                    fvg_icon = "🟢" if res["matrix"]["fvg"] else "❌"
+                    vol_icon = "🟢" if res["atr_valid"] else "❌"
+
+                    block = (
+                        f"🪙 *Asset Node:* `{res['symbol']}` | Price: `{global_price_cache.get(s)}`\n"
+                        f"🧠 *Bayesian Score:* `{res['score']:.1f}%` / 100%\n"
+                        f"🔹 Trend Confluence: {trend_icon}\n"
+                        f"🔹 Dealing Bias (Premium): {bias_icon}\n"
+                        f"🔹 Liquidity Pool Sweep: {sweep_icon}\n"
+                        f"🔹 Structural Shift (BOS): {choch_icon}\n"
+                        f"🔹 Institutional Block (OB): {ob_icon}\n"
+                        f"🔹 Imbalance Pocket (FVG): {fvg_icon}\n"
+                        f"🔹 Volatility Breakout (ATR): {vol_icon}\n"
+                        f"----------------------------------------"
+                    )
+                    token_reports.append(block)
             
-            # Dispatches live updates directly onto your telegram node every 5 mins
-            if heartbeat_lines:
-                session_header = f"📊 *[SYSTEM HEARTBEAT - {session_name}]*\n" if allowed_session else "📊 *[SYSTEM HEARTBEAT - OUTSIDE KILLZONE]*\n"
-                heartbeat_msg = session_header + "\n".join(heartbeat_lines) + f"\n\n⏱️ _Next automated core audit sequence in 5 minutes..._"
-                await send_telegram_alert(heartbeat_msg)
+            if token_reports:
+                final_msg = session_header + "\n".join(token_reports) + f"\n⏱️ _Next full structural audit sequence in 5 minutes..._"
+                await send_telegram_alert(final_msg)
 
             await TradeLifecycleMonitor.audit_active_positions(global_price_cache)
         except Exception as err:
@@ -509,6 +529,6 @@ async def core_processing_loop():
 
 app = FastAPI(lifespan=lifespan)
 @app.api_route("/", methods=["GET", "HEAD"])
-def live_health_proxy(): return {"status": "ONLINE", "framework": "Sovereign Core V20.1 Pro Enabled"}
+def live_health_proxy(): return {"status": "ONLINE", "framework": "Sovereign Core V20.2 Ultra-Granular"}
 
 if __name__ == "__main__": uvicorn.run("bot:app", host="0.0.0.0", port=int(os.environ.get("PORT", 10000)), workers=1)
