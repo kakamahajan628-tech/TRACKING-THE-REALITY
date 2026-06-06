@@ -14,134 +14,170 @@ from typing import List, Dict, Optional, Tuple
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
 
-# ==========================================
-# 0. GLOBAL APPLICATION STATE MEMORY
-# ==========================================
+# ========================================================
+# 0. SYSTEM STATE LAYER (Dynamic Persistent Variables)
+# ========================================================
 class DynamicGlobalState:
     def __init__(self):
-        self.tracked_symbols = ["BTC/USDT", "ETH/USDT"]  # Default base list
+        self.tracked_symbols = ["BTC/USDT", "ETH/USDT"]  # Adaptive Matrix Queue
         self.tg_app: Optional[Application] = None
         self.chat_id: Optional[str] = os.environ.get("TELEGRAM_CHAT_ID")
         self.token: Optional[str] = os.environ.get("TELEGRAM_BOT_TOKEN")
 
 global_state = DynamicGlobalState()
 
-# ==========================================
-# 1. TELEGRAM CORE COMMAND HANDLERS
-# ==========================================
+# ========================================================
+# 1. CORE COMMUNICATIONS LOGISTICS (Telegram Engine)
+# ========================================================
 async def send_telegram_alert(text: str):
-    """Helper function to broadcast execution triggers directly to your phone."""
+    """Broadcasts algorithmic triggers and system reports directly to your personal chat ID."""
     if global_state.tg_app and global_state.chat_id:
         try:
             await global_state.tg_app.bot.send_message(chat_id=global_state.chat_id, text=text, parse_mode="Markdown")
         except Exception as e:
-            print(f"⚠️ Telegram alert dispatch failed: {str(e)}")
+            print(f"⚠️ Telemetry broadcast failure: {str(e)}")
 
 async def tg_start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if str(update.effective_chat.id) != global_state.chat_id:
-        return
+    if str(update.effective_chat.id) != global_state.chat_id: return
     msg = (
-        "🦅 *The Quantum-Sentinel V8 PRO Active*\n\n"
-        "Available Commands:\n"
-        "🔹 `/add COIN` - Track a new asset (e.g., `/add SOL/USDT`)\n"
-        "🔹 `/remove COIN` - Drop an asset (e.g., `/remove ETH/USDT`)\n"
-        "🔹 `/list` - Show active tracking queue\n"
-        "🔹 `/matrix` - Fetch instant quantitative scores"
+        "🦅 *QUANTUM-SENTINEL V8 DUAL-EXCHANGE ACTIVE*\n"
+        "========================================\n"
+        "Framework Command Access Layer:\n\n"
+        "🔹 `/add COIN` - Queue structural tracking node (e.g., `/add SOL/USDT`)\n"
+        "🔹 `/remove COIN` - Drop vector coordinate (e.g., `/remove ETH/USDT`)\n"
+        "🔹 `/list` - Output contemporary inventory registry\n"
+        "🔹 `/matrix` - Execute hybrid OKX & Gate.io SMC snapshot"
     )
     await update.message.reply_text(msg, parse_mode="Markdown")
 
 async def tg_add_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if str(update.effective_chat.id) != global_state.chat_id: return
     if not context.args:
-        await update.message.reply_text("⚠️ Format: `/add SOL/USDT`")
+        await update.message.reply_text("⚠️ Syntax error. Use: `/add SOL/USDT`")
         return
-    
     coin = context.args[0].upper()
     if coin not in global_state.tracked_symbols:
         global_state.tracked_symbols.append(coin)
-        await update.message.reply_text(f"✅ Added *{coin}* to active tracking pipeline.", parse_mode="Markdown")
+        await update.message.reply_text(f"✅ Structural tracker active for coordinate node: *{coin}*", parse_mode="Markdown")
     else:
-        await update.message.reply_text(f"⚠️ *{coin}* is already being tracked.")
+        await update.message.reply_text(f"⚠️ Vector token *{coin}* is already linked.")
 
 async def tg_remove_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if str(update.effective_chat.id) != global_state.chat_id: return
     if not context.args:
-        await update.message.reply_text("⚠️ Format: `/remove ETH/USDT`")
+        await update.message.reply_text("⚠️ Syntax error. Use: `/remove ETH/USDT`")
         return
-    
     coin = context.args[0].upper()
     if coin in global_state.tracked_symbols:
         global_state.tracked_symbols.remove(coin)
-        await update.message.reply_text(f"❌ Removed *{coin}* from active tracking loop.", parse_mode="Markdown")
+        await update.message.reply_text(f"❌ Dropped target node *{coin}* from active processing stack.", parse_mode="Markdown")
     else:
-        await update.message.reply_text(f"⚠️ *{coin}* is not in the active tracking list.")
+        await update.message.reply_text(f"⚠️ Vector node *{coin}* could not be located.")
 
 async def tg_list_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if str(update.effective_chat.id) != global_state.chat_id: return
     if not global_state.tracked_symbols:
-        await update.message.reply_text("📋 Active tracking list empty. Use `/add` command.")
+        await update.message.reply_text("📋 Operational registry queue is blank.")
         return
-    current_list = "\n".join([f"• `{coin}`" for coin in global_state.tracked_symbols])
-    await update.message.reply_text(f"📋 *Active Tracking Queue:*\n\n{current_list}", parse_mode="Markdown")
+    active_tokens = "\n".join([f"   ↳ Code Node: `{token}`" for token in global_state.tracked_symbols])
+    await update.message.reply_text(f"📋 *Active Operational Processing Registry:*\n\n{active_tokens}", parse_mode="Markdown")
 
 async def tg_matrix_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Fetches instant live structural state metrics and drops report to chat."""
+    """Generates a cross-exchange evaluation report scanning both OKX and Gate.io data maps."""
     if str(update.effective_chat.id) != global_state.chat_id: return
-    
     if not global_state.tracked_symbols:
-        await update.message.reply_text("📋 Tracking queue is empty. Cannot process matrix scans.")
+        await update.message.reply_text("📋 Processing context aborted. Active execution matrix queue is empty.")
         return
 
-    await update.message.reply_text("🔍 *Scanning market nodes and calculating Bayesian weights... Please wait.*", parse_mode="Markdown")
+    await update.message.reply_text("🔍 *Deep-scanning OKX & Gate.io Orderbooks... Processing Multi-Exchange Alpha Matrix.*", parse_mode="Markdown")
     
-    exchange = ccxt.okx({"enableRateLimit": True})
+    # Dual Network Ingestion Nodes Initialization
+    okx_ex = ccxt.okx({"enableRateLimit": True})
+    gate_ex = ccxt.gate({"enableRateLimit": True})
     engine = CompleteSentinelEngine()
-    results = []
-
+    
     try:
         for symbol in global_state.tracked_symbols:
+            # Parallel data streams orchestration block
+            okx_ohlcv, gate_ohlcv = None, None
             try:
-                ltf_ohlcv = await exchange.fetch_ohlcv(symbol, '15m', limit=100)
-                if not ltf_ohlcv: continue
-                
-                df = pd.DataFrame(ltf_ohlcv, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
-                df, state_meta = engine.structure_engine.map_market_geometry(df)
-                
-                closes = df['close'].values
-                equilibrium = (state_meta["dealing_high"] + state_meta["dealing_low"]) / 2
-                bias = "PREMIUM 🔴" if closes[-1] > equilibrium else "DISCOUNT 🟢"
-                
-                fvg = TrueLifecycleScanner.scan_fvg_depth_profiles(df)
-                ob = TrueLifecycleScanner.qualify_institutional_blocks(df, state_meta)
-                
-                # Bayesian weight scoring for snapshot representation
-                calibrated_weights = engine.db.query_bayesian_weights()
-                score = 0
-                if bias == "PREMIUM 🔴": score += calibrated_weights["BIAS"]
-                if fvg["fvg_valid"]: score += calibrated_weights["FVG"]
-                if ob["ob_active"]: score += calibrated_weights["OB"]
-                if state_meta["bos_confirmed"]: score += calibrated_weights["CHOCH"]
-                
-                results.append(f"• *{symbol}*: `{score:.1f}%` | Core: {bias}")
-            except Exception as item_err:
-                results.append(f"• *{symbol}*: `Error (Invalid ticker node)`")
+                okx_ohlcv = await okx_ex.fetch_ohlcv(symbol, '15m', limit=100)
+            except Exception: pass
+            try:
+                gate_ohlcv = await gate_ex.fetch_ohlcv(symbol, '15m', limit=100)
+            except Exception: pass
+
+            # Select premium stream based on absolute density profiles
+            selected_ohlcv = okx_ohlcv if okx_ohlcv else gate_ohlcv
+            source_node = "OKX ENGINE" if okx_ohlcv else ("GATE.IO LIQUIDITY" if gate_ohlcv else "FAILED_NODE")
+            
+            if not selected_ohlcv:
+                await update.message.reply_text(f"⚠️ *Asset Coordinate* `{symbol}` *inaccessible on both OKX & Gate.io layers.*", parse_mode="Markdown")
                 continue
+                
+            df = pd.DataFrame(selected_ohlcv, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
+            df, state_meta = engine.structure_engine.map_market_geometry(df)
+            
+            closes, volumes = df['close'].values, df['volume'].values
+            vol_ma = df['volume'].rolling(20).mean().values
+            vol_valid = volumes[-1] > vol_ma[-1] * 1.5 if not np.isnan(vol_ma[-1]) else False
+            
+            true_bear_choch = True if (state_meta["last_hl"] and closes[-1] < state_meta["last_hl"] and vol_valid) else False
+            liquidity = TrueLifecycleScanner.calculate_clustered_liquidity(df)
+            
+            true_bear_sweep = False
+            if liquidity["EQH"]:
+                max_eqh_target = max(liquidity["EQH"])
+                if df['high'].iloc[-1] > max_eqh_target and closes[-1] < max_eqh_target: true_bear_sweep = True
+                    
+            fvg = TrueLifecycleScanner.scan_fvg_depth_profiles(df)
+            ob = TrueLifecycleScanner.qualify_institutional_blocks(df, state_meta)
+            equilibrium = (state_meta["dealing_high"] + state_meta["dealing_low"]) / 2
+            in_premium = closes[-1] > equilibrium
+            
+            calibrated_weights = engine.db.query_bayesian_weights()
+            score = 0
+            if in_premium: score += calibrated_weights["BIAS"]
+            if true_bear_sweep: score += calibrated_weights["SWEEP"]
+            if (true_bear_choch or state_meta["bos_confirmed"]): score += calibrated_weights["CHOCH"]
+            if (ob["ob_active"] or ob["breaker_active"]): score += calibrated_weights["OB"]
+            if (fvg["fvg_valid"] or fvg["ce_rejected"]): score += calibrated_weights["FVG"]
+            
+            bias_status = "🔴 Premium Invalidation Zone" if in_premium else "🟢 Discount Accumulation Zone"
+            sweep_status = "🔥 POSITIVE (Stop Hunt Verified)" if true_bear_sweep else "❌ Negative (No Clustered Hunt)"
+            choch_status = "⚡ CHOCH Shift Confirmed" if true_bear_choch else ("📉 BOS Structural Continuation" if state_meta["bos_confirmed"] else "⏳ Consolidation Equilibrium Balance")
+            ob_status = "🏰 Active Order Block Mitigation" if ob["ob_active"] else ("⚡ Breaker Block Conversion" if ob["breaker_active"] else "❌ Inactive Institutional Presence")
+            fvg_status = "🎯 Imbalance Active (Unfilled Pocket)" if fvg["fvg_valid"] else ("⚠️ 50% CE Rejection Vector" if fvg["ce_rejected"] else "✅ Balanced Price Delivery")
 
-        await exchange.close()
-        final_msg = "📊 *Current Quantitative Matrix Scan:*\n\n" + "\n".join(results)
-        await update.message.reply_text(final_msg, parse_mode="Markdown")
-        
-    except Exception as e:
-        await exchange.close()
-        await update.message.reply_text(f"❌ *Matrix Error:* `{str(e)}`", parse_mode="Markdown")
+            report_layout = (
+                f"🔬 *SENTINEL QUANTUM V8 DUAL AUDIT: {symbol}*\n"
+                f"========================================\n"
+                f"🛰️ *Liquidity Core Ingestion Source:* `{source_node}`\n"
+                f"🧠 *Bayesian Confidence Matrix Index:* `{score:.2f}%` / 100%\n"
+                f"----------------------------------------\n"
+                f"📈 *Structural State Engine:* {choch_status}\n"
+                f"🎯 *Liquidity Cluster Pool:* {sweep_status}\n"
+                f"🏰 *Institutional Order Block:* {ob_status}\n"
+                f"🌊 *FVG Imbalance Lifecycle:* {fvg_status}\n"
+                f"🎚️ *Dealing Range Evaluation:* {bias_status}\n"
+                f"========================================\n"
+            )
+            await update.message.reply_text(report_layout, parse_mode="Markdown")
 
-# ==========================================
-# 2. MASTER LIFESPAN SCHEDULER
-# ==========================================
+        await okx_ex.close()
+        await gate_ex.close()
+    except Exception as master_err:
+        await okx_ex.close()
+        await gate_ex.close()
+        await update.message.reply_text(f"❌ *Matrix Infrastructure Audit Exception:* `{str(master_err)}`", parse_mode="Markdown")
+
+# ========================================================
+# 2. MASTER APPLICATION SHEDULER LIFESPAN CONTAINER
+# ========================================================
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("\n" + "="*60)
-    print(" 🔥 INITIALIZING INTEGRATED QUANT-TG PRO INFRASTRUCTURE 🔥")
+    print(" 🔥 STARTING THE SENTINEL QUANTUM CORE ENGINE CLOUD GATEWAY 🔥")
     print("="*60)
     
     if global_state.token:
@@ -150,15 +186,15 @@ async def lifespan(app: FastAPI):
         tg_builder.add_handler(CommandHandler("add", tg_add_command))
         tg_builder.add_handler(CommandHandler("remove", tg_remove_command))
         tg_builder.add_handler(CommandHandler("list", tg_list_command))
-        tg_builder.add_handler(CommandHandler("matrix", tg_matrix_command)) # Registered Matrix
+        tg_builder.add_handler(CommandHandler("matrix", tg_matrix_command))
         
         await tg_builder.initialize()
         await tg_builder.start()
         await tg_builder.updater.start_polling(drop_pending_updates=True)
         global_state.tg_app = tg_builder
-        print("📊 Telegram Bot Interface Hooked & Polling.")
+        print("📊 Institutional Telegram System interface bound and active.")
     else:
-        print("⚠️ No TELEGRAM_BOT_TOKEN detected. Alert interfaces disabled.")
+        print("⚠️ Initialization warning: System requires TELEGRAM_BOT_TOKEN.")
 
     engine = CompleteSentinelEngine()
     quant_task = asyncio.create_task(engine.engine_core_loop())
@@ -170,17 +206,17 @@ async def lifespan(app: FastAPI):
         await global_state.tg_app.updater.stop()
         await global_state.tg_app.stop()
         await global_state.tg_app.shutdown()
-    print("🛑 Multi-vector systems decoupled successfully.")
+    print("🛑 System components unmounted successfully.")
 
 app = FastAPI(lifespan=lifespan)
 
 @app.api_route("/", methods=["GET", "HEAD"])
 def health_check():
-    return {"status": "HEALTHY", "engine": "Sentinel V8 TG-Interactive", "tracked_count": len(global_state.tracked_symbols)}
+    return {"status": "HEALTHY", "engine": "The Sentinel Quantum Framework V8 Dual Core", "active_tracking_nodes": len(global_state.tracked_symbols)}
 
-# ==========================================
-# 3. QUANT LAYER PERSISTENCE (SQLite Map)
-# ==========================================
+# ========================================================
+# 3. DATABASE ALPHA REGISTRY LAYER (SQLite Map)
+# ========================================================
 class AdvancedSignalDatabase:
     def __init__(self, db_name="sentinel_quantum_v8.db"):
         self.db_name = os.path.join(os.getcwd(), db_name)
@@ -203,7 +239,7 @@ class AdvancedSignalDatabase:
                 """)
                 conn.commit()
         except Exception as db_err:
-            print(f"⚠️ DB Warning: {str(db_err)}")
+            print(f"⚠️ SQL Persistence warning block bypassed: {str(db_err)}")
 
     def log_trade_intent(self, symbol: str, direction: str, entry: float, sl: float, tp: float, conf: float, f_matrix: Dict):
         try:
@@ -219,7 +255,7 @@ class AdvancedSignalDatabase:
                       f_matrix["choch"], f_matrix["sweep"], f_matrix["ob"], f_matrix["fvg"], f_matrix["bias"], conf))
                 conn.commit()
         except Exception as log_err:
-            print(f"❌ DB Log Fail: {str(log_err)}")
+            print(f"❌ Data storage drop error: {str(log_err)}")
 
     def query_bayesian_weights(self) -> Dict[str, float]:
         base_weights = {"BIAS": 20.0, "SWEEP": 20.0, "CHOCH": 25.0, "OB": 15.0, "FVG": 20.0}
@@ -245,7 +281,7 @@ class AdvancedSignalDatabase:
         except Exception: return base_weights
 
 # ========================================================
-# 4. STRUCTURAL GEOMETRIC & VALIDATION ENGINES
+# 4. QUANT ALGORITHMIC PROCESSING LAYERS
 # ========================================================
 class StructuralStateEngine:
     def __init__(self, sensitivity: int = 3):
@@ -355,7 +391,7 @@ class SessionKillzoneFilter:
         return False, "OUTSIDE_KILLZONE"
 
 # ========================================================
-# 5. MAIN EXECUTION PIPELINE LOOP
+# 5. EXECUTION PIPELINE PROCESSING ENVIRONMENT
 # ========================================================
 class CompleteSentinelEngine:
     def __init__(self):
@@ -412,32 +448,40 @@ class CompleteSentinelEngine:
                 sl, tp, atr_val = ProductionRiskManager.generate_protected_boundaries(df_ltf, "SHORT", entry, state_meta)
                 self.db.log_trade_intent(symbol, "SHORT", entry, sl, tp, confidence_index, features_matrix)
                 
-                alert_text = (
-                    "🚨 *[V8 SENTINEL TRIGGER ALERT]* 🚨\n\n"
-                    f"• *Asset Node:* `{symbol}`\n"
-                    f"• *Action:* `SHORT (SELL)`\n"
-                    f"• *Entry Target:* `{entry}`\n"
-                    f"• *Stop Loss:* `{sl:.2f}`\n"
-                    f"• *Take Profit:* `{tp:.2f}`\n\n"
-                    f"📊 *Bayesian Confidence Score:* `{confidence_index:.2f}%`"
+                alert_layout = (
+                    f"🚨 *[QUANTUM INSTITUTIONAL VECTOR TRIGGER]* 🚨\n"
+                    f"========================================\n"
+                    f"• *Symbol Coordinate:* `{symbol}`\n"
+                    f"• *Execution Order:* `SHORT DISPLACEMENT (SELL)`\n"
+                    f"• *Geometric Entry Base:* `{entry}`\n"
+                    f"• *Stop Loss Matrix Zone:* `{sl:.2f}`\n"
+                    f"• *Take Profit Target R3:* `{tp:.2f}`\n"
+                    f"----------------------------------------\n"
+                    f"📊 *Bayesian Confidence Resolve:* `{confidence_index:.2f}%` / 100%\n"
+                    f"========================================\n"
                 )
-                await send_telegram_alert(alert_text)
+                await send_telegram_alert(alert_layout)
         except Exception as err:
-            print(f"❌ [CRITICAL PIPELINE ERROR] Asset {symbol} context faulted: {str(err)}")
+            print(f"❌ [PIPELINE FAULT] Token {symbol} iteration dropped: {str(err)}")
 
     async def engine_core_loop(self):
-        exchange_client = ccxt.okx({"enableRateLimit": True})
-        await send_telegram_alert("🦅 *The Quantum-Sentinel V8 Framework has safely booted on Render Production Cloud. Listening for configurations...*")
+        # Dual operational loops for ambient monitoring
+        okx_client = ccxt.okx({"enableRateLimit": True})
+        gate_client = ccxt.gate({"enableRateLimit": True})
+        
+        await send_telegram_alert(" eagles *The Quantum-Sentinel V8 Dual-Core Framework (OKX & Gate.io) is now running on Render Production Cloud. Listening...*")
         
         try:
             while True:
                 for symbol in list(global_state.tracked_symbols):
-                    await self.process_market_execution(symbol, exchange_client)
+                    # Ambient system routes tracking through default loops
+                    await self.process_market_execution(symbol, okx_client)
                 await asyncio.sleep(300)
         except Exception as loop_err:
-            print(f"💥 Engine Loop Broken: {str(loop_err)}")
+            print(f"💥 Main Runtime Loop Broken: {str(loop_err)}")
         finally:
-            await exchange_client.close()
+            await okx_client.close()
+            await gate_client.close()
 
 if __name__ == "__main__":
     port_allocated = int(os.environ.get("PORT", 10000))
