@@ -47,13 +47,13 @@ config = ProductionConfig()
 class SovereignAsyncDatabase:
     def __init__(self, db_name="sentinel_v18_titanium.db"):
         self.db_name = os.path.join(os.getcwd(), db_name)
-        self.pool_conn: Optional[aiosqlite.Connection] = None  # Persistent Connection Pool (Fix #5)
+        self.pool_conn: Optional[aiosqlite.Connection] = None  # Persistent Connection Pool
 
     async def init_db(self):
-        """Asynchronously boots table constraints and performance optimizations (Fix #5 & #9)."""
+        """Asynchronously boots table constraints and performance optimizations."""
         self.pool_conn = await aiosqlite.connect(self.db_name)
         
-        # Fix #9: Injecting Enterprise Production Performance optimizations directly into the database engine
+        # Performance optimizations directly into the database engine
         await self.pool_conn.execute("PRAGMA journal_mode=WAL;")
         await self.pool_conn.execute("PRAGMA synchronous=NORMAL;")
         
@@ -87,7 +87,7 @@ class SovereignAsyncDatabase:
             return res is not None
 
     async def verify_and_lock_signal_hash(self, signal_hash: str) -> bool:
-        """Prevents duplicate message spam over Telegram nodes during concurrent iterations (Fix #7)."""
+        """Prevents duplicate message spam over Telegram nodes during concurrent iterations."""
         try:
             await self.pool_conn.execute("INSERT INTO execution_hashes (signal_hash) VALUES (?)", (signal_hash,))
             await self.pool_conn.commit()
@@ -114,17 +114,21 @@ class SovereignAsyncDatabase:
         await self.pool_conn.commit()
 
     async def query_performance_metrics(self) -> Dict:
-        db_df = pd.read_sql_query("SELECT status FROM trade_lifecycle WHERE status IN ('WIN', 'LOSS')", sqlite3.connect(self.db_name))
+        # Static connect check for metrics safely mapping active rows
+        db_df = pd.read_sql_query("SELECT status FROM trade_lifecycle WHERE status IN ('WIN', 'LOSS', 'EXPIRED')", sqlite3.connect(self.db_name))
         if db_df.empty: return {"status_text": "📋 *Performance Matrix:* Insufficient log saturation."}
         
         total = len(db_df)
         wins = len(db_df[db_df['status'] == 'WIN'])
         losses = len(db_df[db_df['status'] == 'LOSS'])
-        wr = (wins / max(total, 1)) * 100
-        return {"status_text": f"📋 *System Performance Analytics:*\nTotal Trades Closed: `{total}`\nWin-Rate: `{wr:.2f}%` | Total Wins: `{wins}` | Losses: `{losses}`"}
+        expired = len(db_df[db_df['status'] == 'EXPIRED'])
+        wr = (wins / max(wins + losses, 1)) * 100
+        profit_factor = (float(wins * 2.5) / max(losses, 1))
+        
+        return {"status_text": f"📋 *System Performance Analytics (Titan V18.1):*\nTotal Trades Processed: `{total}`\nActive Wins: `{wins}` | Losses: `{losses}`\nTemporal Expirations: `{expired}`\nWin-Rate (Closed): `{wr:.2f}%`\nProfit Factor Score: `{profit_factor:.2f}`"}
 
     async def query_bayesian_weights(self) -> Dict[str, float]:
-        """Fix #1: Completely restored adaptive Bayesian weight framework logic matrix handles (Fix #1)."""
+        """Calculates adaptive weight matrices off historical logs."""
         base_weights = {"BIAS": 25.0, "SWEEP": 25.0, "CHOCH": 25.0, "OB": 15.0, "FVG": 10.0}
         try:
             df = pd.read_sql_query("SELECT * FROM trade_lifecycle WHERE status IN ('WIN', 'LOSS')", sqlite3.connect(self.db_name))
@@ -158,12 +162,15 @@ db = SovereignAsyncDatabase()
 # TELEGRAM COMMUNICATION ENGINE PIPELINES
 # ========================================================
 async def send_telegram_alert(text: str):
+    """Broadcasts algorithmic triggers and system reports directly to your personal chat ID."""
     if config.tg_app and config.chat_id:
-        try: await config.tg_app.bot.send_message(chat_id=config.chat_id, text=text, parse_mode="Markdown")
-        except Exception as e: logger.error(f"Telemetry broadcast failure: {str(e)}")
+        try: 
+            await config.tg_app.bot.send_message(chat_id=config.chat_id, text=text, parse_mode="Markdown")
+        except Exception as e: 
+            logger.error(f"Telemetry broadcast failure: {str(e)}")
 
 # ========================================================
-# 2. VECTORIZED STRUCTURE ANALYSIS ENGINE (NO LOOKAHEAD - FIX #2 & #3)
+# 2. VECTORIZED STRUCTURE ANALYSIS ENGINE (NO LOOKAHEAD)
 # ========================================================
 class MarketStructureEngine:
     @staticmethod
@@ -177,10 +184,10 @@ class MarketStructureEngine:
 
     @staticmethod
     def extract_geometry_sequence(df: pd.DataFrame, window=5) -> Tuple[pd.DataFrame, Dict]:
-        """Fix #2 & #3: Pure Vectorized Backward-looking Swing tracking engine eliminates lookahead bias."""
+        """Pure Vectorized Backward-looking Swing tracking engine eliminates lookahead bias."""
         h, l, c, v = df['h'], df['l'], df['c'], df['v']
         
-        # Fix #2: Map localized fractures using strictly lagging rolling calculations
+        # Map localized fractures using strictly lagging rolling calculations
         rolling_max = h.shift(1).rolling(window=window).max()
         rolling_min = l.shift(1).rolling(window=window).min()
         
@@ -188,7 +195,7 @@ class MarketStructureEngine:
         last_confirmed_sh = rolling_max.iloc[-2]
         last_confirmed_sl = rolling_min.iloc[-2]
         
-        # Fix #3: Precision ICT Imbalance confirmation map logic (Low[i-2] > High[i])
+        # Precision ICT Imbalance confirmation map logic (Low[i-2] > High[i])
         fvg_valid = (l.shift(2) > h).iloc[-2]
         fvg_ce_rejected = False
         if fvg_valid:
@@ -209,15 +216,14 @@ class MarketStructureEngine:
                     "sweep": true_liquidity_sweep, "bos": true_bearish_bos, "ob": ob_active, "fvg": fvg_valid, "ce_reject": fvg_ce_rejected}
 
 # ========================================================
-# 3. HIGH-AVAILABILITY FAILOVER & RETRY INTERFACES (FIX #6 & #11)
+# 3. HIGH-AVAILABILITY FAILOVER & RETRY INTERFACES
 # ========================================================
 class HighAvailabilityNetworkProxy:
     @staticmethod
     async def fetch_ohlcv_with_backoff(exchange: ccxt.Exchange, symbol: str, timeframe: str, limit: int) -> Optional[List]:
-        """Fix #11: Network socket data fetcher running an explicit exponential backoff execution wrapper."""
+        """Network socket data fetcher running an explicit exponential backoff execution wrapper."""
         for attempt in range(3):
             try:
-                # Fix #3: Hard timeout execution tracking added to avoid hanging state threads
                 return await asyncio.wait_for(exchange.fetch_ohlcv(symbol, timeframe, limit=limit), timeout=15)
             except (ccxt.NetworkError, ccxt.ExchangeError, asyncio.TimeoutError) as network_fault:
                 backoff_delay = 2 ** attempt
@@ -226,7 +232,7 @@ class HighAvailabilityNetworkProxy:
         return None
 
 # ========================================================
-# 4. CAPITAL PROTECTIONS & COST CACHE TUNING (FIX #4 & #9)
+# 4. CAPITAL PROTECTIONS & COST CACHE TUNING
 # ========================================================
 class InstitutionalRiskGovernor:
     @staticmethod
@@ -242,7 +248,7 @@ class InstitutionalRiskGovernor:
 class TradeLifecycleMonitor:
     @staticmethod
     async def audit_active_positions(price_cache: Dict[str, float]):
-        """Fix #4: Ingests unified structural price dictionary to compress processing to O(1) complexities."""
+        """Ingests unified structural price dictionary to compress processing to O(1) complexities."""
         open_trades = await db.query_open_positions()
         if not open_trades: return
 
@@ -257,17 +263,18 @@ class TradeLifecycleMonitor:
                 await send_telegram_alert(f"⏳ *[LIFECYCLE EXPORT: EXPIRED]*\nAsset Node `{symbol}` auto-flushed at maturity ceiling.")
                 continue
 
-            # Fix #4: Lookup price parameter instantly out of optimized execution cost context cache dict
+            # Lookup price parameter instantly out of optimized execution cost context cache dict
             live_price = price_cache.get(symbol)
             if not live_price: continue
                 
             if position['direction'] == "SHORT":
-                if live_price >= position['sl']:
-                    await db.update_lifecycle_outcome(trade_id, "LOSS")
-                    await send_telegram_alert(f"🛑 *[LIFECYCLE EXPORT: LOSS]*\nAsset `{symbol}` hit stop protection zone.")
-                elif live_price <= position['tp']:
-                    await db.update_lifecycle_outcome(trade_id, "WIN")
-                    await send_telegram_alert(f"🎯 *[LIFECYCLE EXPORT: WIN]*\nAsset `{symbol}` reached absolute take-profit margins.")
+                if current_live_price := live_price:
+                    if current_live_price >= position['sl']:
+                        await db.update_lifecycle_outcome(trade_id, "LOSS")
+                        await send_telegram_alert(f"🛑 *[LIFECYCLE EXPORT: LOSS]*\nAsset `{symbol}` hit stop protection zone.")
+                    elif current_live_price <= position['tp']:
+                        await db.update_lifecycle_outcome(trade_id, "WIN")
+                        await send_telegram_alert(f"🎯 *[LIFECYCLE EXPORT: WIN]*\nAsset `{symbol}` reached absolute take-profit margins.")
 
 # ========================================================
 # 5. TITAN MASTER PROCESSING PIPELINE MANAGEMENT
@@ -280,7 +287,7 @@ class CompleteSentinelEngine:
             if not SessionKillzoneFilter.check_killzone()[0]: return
 
             async with config.semaphore:
-                # Fix #6: Authentic Multi-Exchange Cascading Failover Network Core
+                # Multi-Exchange Cascading Failover Network Core
                 l_data, h_data, i_data, selected_ex_id = None, None, None, None
                 for ex in config.active_exchanges:
                     l_data = await HighAvailabilityNetworkProxy.fetch_ohlcv_with_backoff(ex, symbol, '15m', limit=100)
@@ -288,7 +295,7 @@ class CompleteSentinelEngine:
                     i_data = await HighAvailabilityNetworkProxy.fetch_ohlcv_with_backoff(ex, symbol, '1h', limit=100)
                     if l_data and h_data and i_data:
                         selected_ex_id = ex.id.upper()
-                        break # Break loop instantly on successful network delivery sequence
+                        break 
                 
                 if not l_data or not h_data or not i_data:
                     logger.error(f"❌ Ingestion Fault: Asset node {symbol} data mapping dropped across ALL failover profiles.")
@@ -319,14 +326,14 @@ class CompleteSentinelEngine:
                 df_ltf, smc = MarketStructureEngine.extract_geometry_sequence(df_ltf)
                 in_premium = live_market_rate > ((smc["dealing_high"] + smc["dealing_low"]) / 2)
 
-                # Fix #12: Authentic Multiplicative Strategy Filter Rules Engine
+                # Multiplicative Strategy Filter Rules Engine Verification
                 if not (smc["sweep"] and smc["bos"] and (smc["ob"] or smc["fvg"]) and in_premium and (atr_now > atr_ma_20)):
-                    return # Instantly discard trades that fail strict institutional requirements
+                    return 
 
                 calibrated_weights = await db.query_bayesian_weights()
-                confidence_index = (calibrated_weights["BIAS"] + calibrated_weights["SWEEP"] + calibrated_weights["CHOCH"]) # Contextual representation
+                confidence_index = (calibrated_weights["BIAS"] + calibrated_weights["SWEEP"] + calibrated_weights["CHOCH"]) 
 
-                # Fix #7: Dynamic Hash Generation to neutralize Telegram notifications spam loops
+                # Dynamic Hash Generation to neutralize Telegram notifications spam loops
                 execution_date_token = datetime.now(timezone.utc).strftime('%Y-%m-%d_%H')
                 signal_hash_token = f"{symbol}_SHORT_{execution_date_token}"
                 if not await db.verify_and_lock_signal_hash(signal_hash_token): return
@@ -360,7 +367,7 @@ class CompleteSentinelEngine:
 # ========================================================
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Setup safe database environments asynchronously upon container boot up (Fix #5)
+    # Setup safe database environments asynchronously upon container boot up
     await db.init_db()
     config.active_exchanges = [ccxt.okx({"enableRateLimit": True}), ccxt.gate({"enableRateLimit": True})]
     
@@ -368,13 +375,22 @@ async def lifespan(app: FastAPI):
         tg = Application.builder().token(config.token).build()
         tg.add_handler(CommandHandler("matrix", manual_matrix_audit))
         tg.add_handler(CommandHandler("stats", query_performance_telemetry))
-        await tg.initialize(); await tg.start(); await tg.updater.start_polling(drop_pending_updates=True)
+        
+        await tg.initialize()
+        
+        # CRITICAL FIX: Explicitly drop any active webhook loops before spinning polling engine (Bypasses Conflict 409)
+        await tg.bot.delete_webhook(drop_pending_updates=True)
+        logger.info("🗑️ Pre-flight validation: Expired Telegram webhook sessions flushed cleanly.")
+        
+        await tg.start()
+        await tg.updater.start_polling(drop_pending_updates=True)
         config.tg_app = tg
+        logger.info("Sovereign Alpha Matrix Communications Layer established.")
         
     loop_task = asyncio.create_task(core_processing_loop())
     yield  
     
-    # Graceful Shutdown Engine Sequence (Fix #5 & #6)
+    # Graceful Shutdown Engine Sequence
     loop_task.cancel()
     try: await loop_task
     except asyncio.CancelledError: logger.info("Core background processing cancel confirmed.")
@@ -382,18 +398,18 @@ async def lifespan(app: FastAPI):
     if config.tg_app:
         await config.tg_app.updater.stop()
         await config.tg_app.stop()
-        await config.tg_app.shutdown() # Complete Telegram socket shutdown
+        await config.tg_app.shutdown() 
         
     for ex in config.active_exchanges: await ex.close()
-    await db.close_pool() # Terminate persistent aiosqlite connection pool
+    await db.close_pool() 
     logger.info("🛑 Sovereign core infrastructure completely unmounted. Secure exit protocol terminated.")
 
 async def core_processing_loop():
     engine = CompleteSentinelEngine()
-    primary_exchange = config.active_exchanges[0]
     while True:
         try:
-            # Fix #4: Consolidated single price query step optimization cache
+            # Safe boundary fetch for the primary reference client
+            primary_exchange = config.active_exchanges[0]
             global_price_cache = {}
             for token in config.tracked_symbols:
                 try:
@@ -411,7 +427,6 @@ async def core_processing_loop():
 async def manual_matrix_audit(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if str(update.effective_chat.id) != config.chat_id: return
     await update.message.reply_text("🔬 *Executing Sovereign Alpha Scan across dual exchange matrices...*")
-    # Build single local temporary evaluation cache block mapping manual entries
     temp_cache = {}
     try:
         t_data = await config.active_exchanges[0].fetch_tickers(list(config.tracked_symbols))
@@ -427,6 +442,6 @@ async def query_performance_telemetry(update: Update, context: ContextTypes.DEFA
 
 app = FastAPI(lifespan=lifespan)
 @app.api_route("/", methods=["GET", "HEAD"])
-def live_health_proxy(): return {"status": "ONLINE", "framework": "Sovereign Framework Core V18 Titanium Pro"}
+def live_health_proxy(): return {"status": "ONLINE", "framework": "Sovereign Framework Core V18.1 Hardened"}
 
 if __name__ == "__main__": uvicorn.run("bot:app", host="0.0.0.0", port=int(os.environ.get("PORT", 10000)), workers=1)
