@@ -78,8 +78,62 @@ async def tg_remove_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def tg_list_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if str(update.effective_chat.id) != global_state.chat_id: return
+    if not global_state.tracked_symbols:
+        await update.message.reply_text("📋 Active tracking list empty. Use `/add` command.")
+        return
     current_list = "\n".join([f"• `{coin}`" for coin in global_state.tracked_symbols])
     await update.message.reply_text(f"📋 *Active Tracking Queue:*\n\n{current_list}", parse_mode="Markdown")
+
+async def tg_matrix_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Fetches instant live structural state metrics and drops report to chat."""
+    if str(update.effective_chat.id) != global_state.chat_id: return
+    
+    if not global_state.tracked_symbols:
+        await update.message.reply_text("📋 Tracking queue is empty. Cannot process matrix scans.")
+        return
+
+    await update.message.reply_text("🔍 *Scanning market nodes and calculating Bayesian weights... Please wait.*", parse_mode="Markdown")
+    
+    exchange = ccxt.okx({"enableRateLimit": True})
+    engine = CompleteSentinelEngine()
+    results = []
+
+    try:
+        for symbol in global_state.tracked_symbols:
+            try:
+                ltf_ohlcv = await exchange.fetch_ohlcv(symbol, '15m', limit=100)
+                if not ltf_ohlcv: continue
+                
+                df = pd.DataFrame(ltf_ohlcv, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
+                df, state_meta = engine.structure_engine.map_market_geometry(df)
+                
+                closes = df['close'].values
+                equilibrium = (state_meta["dealing_high"] + state_meta["dealing_low"]) / 2
+                bias = "PREMIUM 🔴" if closes[-1] > equilibrium else "DISCOUNT 🟢"
+                
+                fvg = TrueLifecycleScanner.scan_fvg_depth_profiles(df)
+                ob = TrueLifecycleScanner.qualify_institutional_blocks(df, state_meta)
+                
+                # Bayesian weight scoring for snapshot representation
+                calibrated_weights = engine.db.query_bayesian_weights()
+                score = 0
+                if bias == "PREMIUM 🔴": score += calibrated_weights["BIAS"]
+                if fvg["fvg_valid"]: score += calibrated_weights["FVG"]
+                if ob["ob_active"]: score += calibrated_weights["OB"]
+                if state_meta["bos_confirmed"]: score += calibrated_weights["CHOCH"]
+                
+                results.append(f"• *{symbol}*: `{score:.1f}%` | Core: {bias}")
+            except Exception as item_err:
+                results.append(f"• *{symbol}*: `Error (Invalid ticker node)`")
+                continue
+
+        await exchange.close()
+        final_msg = "📊 *Current Quantitative Matrix Scan:*\n\n" + "\n".join(results)
+        await update.message.reply_text(final_msg, parse_mode="Markdown")
+        
+    except Exception as e:
+        await exchange.close()
+        await update.message.reply_text(f"❌ *Matrix Error:* `{str(e)}`", parse_mode="Markdown")
 
 # ==========================================
 # 2. MASTER LIFESPAN SCHEDULER
@@ -90,13 +144,13 @@ async def lifespan(app: FastAPI):
     print(" 🔥 INITIALIZING INTEGRATED QUANT-TG PRO INFRASTRUCTURE 🔥")
     print("="*60)
     
-    # Initialize Telegram Application natively into the async loop
     if global_state.token:
         tg_builder = Application.builder().token(global_state.token).build()
         tg_builder.add_handler(CommandHandler("start", tg_start_command))
         tg_builder.add_handler(CommandHandler("add", tg_add_command))
         tg_builder.add_handler(CommandHandler("remove", tg_remove_command))
         tg_builder.add_handler(CommandHandler("list", tg_list_command))
+        tg_builder.add_handler(CommandHandler("matrix", tg_matrix_command)) # Registered Matrix
         
         await tg_builder.initialize()
         await tg_builder.start()
@@ -109,9 +163,8 @@ async def lifespan(app: FastAPI):
     engine = CompleteSentinelEngine()
     quant_task = asyncio.create_task(engine.engine_core_loop())
     
-    yield  # Render holds the active container right here
+    yield  
     
-    # Cleanup protocols on teardown
     quant_task.cancel()
     if global_state.tg_app:
         await global_state.tg_app.updater.stop()
@@ -359,7 +412,6 @@ class CompleteSentinelEngine:
                 sl, tp, atr_val = ProductionRiskManager.generate_protected_boundaries(df_ltf, "SHORT", entry, state_meta)
                 self.db.log_trade_intent(symbol, "SHORT", entry, sl, tp, confidence_index, features_matrix)
                 
-                # DISPATCH LIVE TO PHONE USING TG BOT
                 alert_text = (
                     "🚨 *[V8 SENTINEL TRIGGER ALERT]* 🚨\n\n"
                     f"• *Asset Node:* `{symbol}`\n"
@@ -375,12 +427,10 @@ class CompleteSentinelEngine:
 
     async def engine_core_loop(self):
         exchange_client = ccxt.okx({"enableRateLimit": True})
-        # Initial Welcome Message sent directly to your chat when server spins up
         await send_telegram_alert("🦅 *The Quantum-Sentinel V8 Framework has safely booted on Render Production Cloud. Listening for configurations...*")
         
         try:
             while True:
-                # Dynamic Loop: Pulls instantly from the volatile global state modified by your TG inputs
                 for symbol in list(global_state.tracked_symbols):
                     await self.process_market_execution(symbol, exchange_client)
                 await asyncio.sleep(300)
