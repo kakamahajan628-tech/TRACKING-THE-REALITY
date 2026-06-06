@@ -10,7 +10,7 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from typing import List, Dict, Optional, Tuple
 
-# Telegram App Libraries
+# Telegram Core Application Framework
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
 
@@ -91,14 +91,21 @@ async def tg_matrix_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text("🔍 *Deep-scanning OKX & Gate.io Orderbooks... Processing Multi-Exchange Alpha Matrix.*", parse_mode="Markdown")
     
-    # Dual Network Ingestion Nodes Initialization
     okx_ex = ccxt.okx({"enableRateLimit": True})
     gate_ex = ccxt.gate({"enableRateLimit": True})
     engine = CompleteSentinelEngine()
     
     try:
-        for symbol in global_state.tracked_symbols:
-            # Parallel data streams orchestration block
+        # Dynamic Weights Query (Executed once per batch to save CPU/DB load)
+        calibrated_weights = engine.db.query_bayesian_weights()
+        
+        # FIX: Ensure weights dictionary has absolute fallback coverage to prevent data isolation issues
+        fallback_keys = ["BIAS", "SWEEP", "CHOCH", "OB", "FVG"]
+        for key in fallback_keys:
+            if key not in calibrated_weights or pd.isna(calibrated_weights[key]):
+                calibrated_weights[key] = 20.0  # Equal allocation fallback
+
+        for symbol in list(global_state.tracked_symbols):
             okx_ohlcv, gate_ohlcv = None, None
             try:
                 okx_ohlcv = await okx_ex.fetch_ohlcv(symbol, '15m', limit=100)
@@ -107,7 +114,6 @@ async def tg_matrix_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 gate_ohlcv = await gate_ex.fetch_ohlcv(symbol, '15m', limit=100)
             except Exception: pass
 
-            # Select premium stream based on absolute density profiles
             selected_ohlcv = okx_ohlcv if okx_ohlcv else gate_ohlcv
             source_node = "OKX ENGINE" if okx_ohlcv else ("GATE.IO LIQUIDITY" if gate_ohlcv else "FAILED_NODE")
             
@@ -128,15 +134,16 @@ async def tg_matrix_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             true_bear_sweep = False
             if liquidity["EQH"]:
                 max_eqh_target = max(liquidity["EQH"])
-                if df['high'].iloc[-1] > max_eqh_target and closes[-1] < max_eqh_target: true_bear_sweep = True
+                if df['high'].iloc[-1] > max_eqh_target and closes[-1] < max_eqh_target: 
+                    true_bear_sweep = True
                     
             fvg = TrueLifecycleScanner.scan_fvg_depth_profiles(df)
             ob = TrueLifecycleScanner.qualify_institutional_blocks(df, state_meta)
             equilibrium = (state_meta["dealing_high"] + state_meta["dealing_low"]) / 2
             in_premium = closes[-1] > equilibrium
             
-            calibrated_weights = engine.db.query_bayesian_weights()
-            score = 0
+            # FIX: Score variable is explicitly reset per unique symbol iteration
+            score = 0.0
             if in_premium: score += calibrated_weights["BIAS"]
             if true_bear_sweep: score += calibrated_weights["SWEEP"]
             if (true_bear_choch or state_meta["bos_confirmed"]): score += calibrated_weights["CHOCH"]
@@ -163,6 +170,7 @@ async def tg_matrix_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 f"========================================\n"
             )
             await update.message.reply_text(report_layout, parse_mode="Markdown")
+            await asyncio.sleep(0.5)  # Anti-flood protocol mapping for Telegram limits
 
         await okx_ex.close()
         await gate_ex.close()
@@ -267,10 +275,10 @@ class AdvancedSignalDatabase:
             calculated_weights = {}
             features = {"feature_choch": "CHOCH", "feature_sweep": "SWEEP", "feature_ob": "OB", "feature_fvg": "FVG", "feature_premium": "BIAS"}
             for db_col, weight_name in features.items():
-                feature_trades = df[df[db_col] == 1]
-                total_trades = len(feature_trades)
+                feature_trades = df[db_col] == 1
+                total_trades = len(df[feature_trades])
                 if total_trades > 0:
-                    wins = len(feature_trades[feature_trades['final_pnl'] > 0])
+                    wins = len(df[feature_trades & (df['final_pnl'] > 0)])
                     bayesian_wr = (wins + (prior_win_rate * m_weight)) / (total_trades + m_weight)
                     calculated_weights[weight_name] = float(bayesian_wr * 100)
                 else:
@@ -465,16 +473,14 @@ class CompleteSentinelEngine:
             print(f"❌ [PIPELINE FAULT] Token {symbol} iteration dropped: {str(err)}")
 
     async def engine_core_loop(self):
-        # Dual operational loops for ambient monitoring
         okx_client = ccxt.okx({"enableRateLimit": True})
         gate_client = ccxt.gate({"enableRateLimit": True})
         
-        await send_telegram_alert(" eagles *The Quantum-Sentinel V8 Dual-Core Framework (OKX & Gate.io) is now running on Render Production Cloud. Listening...*")
+        await send_telegram_alert("🦅 *The Quantum-Sentinel V8 Dual-Core Framework (OKX & Gate.io) is now running on Render Production Cloud. Listening...*")
         
         try:
             while True:
                 for symbol in list(global_state.tracked_symbols):
-                    # Ambient system routes tracking through default loops
                     await self.process_market_execution(symbol, okx_client)
                 await asyncio.sleep(300)
         except Exception as loop_err:
