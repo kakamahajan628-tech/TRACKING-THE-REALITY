@@ -10,41 +10,123 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from typing import List, Dict, Optional, Tuple
 
+# Telegram App Libraries
+from telegram import Update
+from telegram.ext import Application, CommandHandler, ContextTypes
+
 # ==========================================
-# 0. ENGINE SCHEDULER LIFESPAN CONTAINER
+# 0. GLOBAL APPLICATION STATE MEMORY
+# ==========================================
+class DynamicGlobalState:
+    def __init__(self):
+        self.tracked_symbols = ["BTC/USDT", "ETH/USDT"]  # Default base list
+        self.tg_app: Optional[Application] = None
+        self.chat_id: Optional[str] = os.environ.get("TELEGRAM_CHAT_ID")
+        self.token: Optional[str] = os.environ.get("TELEGRAM_BOT_TOKEN")
+
+global_state = DynamicGlobalState()
+
+# ==========================================
+# 1. TELEGRAM CORE COMMAND HANDLERS
+# ==========================================
+async def send_telegram_alert(text: str):
+    """Helper function to broadcast execution triggers directly to your phone."""
+    if global_state.tg_app and global_state.chat_id:
+        try:
+            await global_state.tg_app.bot.send_message(chat_id=global_state.chat_id, text=text, parse_mode="Markdown")
+        except Exception as e:
+            print(f"⚠️ Telegram alert dispatch failed: {str(e)}")
+
+async def tg_start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if str(update.effective_chat.id) != global_state.chat_id:
+        return
+    msg = (
+        "🦅 *The Quantum-Sentinel V8 PRO Active*\n\n"
+        "Available Commands:\n"
+        "🔹 `/add COIN` - Track a new asset (e.g., `/add SOL/USDT`)\n"
+        "🔹 `/remove COIN` - Drop an asset (e.g., `/remove ETH/USDT`)\n"
+        "🔹 `/list` - Show active tracking queue\n"
+        "🔹 `/matrix` - Fetch instant quantitative scores"
+    )
+    await update.message.reply_text(msg, parse_mode="Markdown")
+
+async def tg_add_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if str(update.effective_chat.id) != global_state.chat_id: return
+    if not context.args:
+        await update.message.reply_text("⚠️ Format: `/add SOL/USDT`")
+        return
+    
+    coin = context.args[0].upper()
+    if coin not in global_state.tracked_symbols:
+        global_state.tracked_symbols.append(coin)
+        await update.message.reply_text(f"✅ Added *{coin}* to active tracking pipeline.", parse_mode="Markdown")
+    else:
+        await update.message.reply_text(f"⚠️ *{coin}* is already being tracked.")
+
+async def tg_remove_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if str(update.effective_chat.id) != global_state.chat_id: return
+    if not context.args:
+        await update.message.reply_text("⚠️ Format: `/remove ETH/USDT`")
+        return
+    
+    coin = context.args[0].upper()
+    if coin in global_state.tracked_symbols:
+        global_state.tracked_symbols.remove(coin)
+        await update.message.reply_text(f"❌ Removed *{coin}* from active tracking loop.", parse_mode="Markdown")
+    else:
+        await update.message.reply_text(f"⚠️ *{coin}* is not in the active tracking list.")
+
+async def tg_list_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if str(update.effective_chat.id) != global_state.chat_id: return
+    current_list = "\n".join([f"• `{coin}`" for coin in global_state.tracked_symbols])
+    await update.message.reply_text(f"📋 *Active Tracking Queue:*\n\n{current_list}", parse_mode="Markdown")
+
+# ==========================================
+# 2. MASTER LIFESPAN SCHEDULER
 # ==========================================
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Orchestrates safe concurrent startup and shutdown of the quantitative engine."""
     print("\n" + "="*60)
-    print(" 🔥 THE QUANT-SENTINEL V8 OKX CLOUD CORE BOOTING 🔥")
+    print(" 🔥 INITIALIZING INTEGRATED QUANT-TG PRO INFRASTRUCTURE 🔥")
     print("="*60)
     
+    # Initialize Telegram Application natively into the async loop
+    if global_state.token:
+        tg_builder = Application.builder().token(global_state.token).build()
+        tg_builder.add_handler(CommandHandler("start", tg_start_command))
+        tg_builder.add_handler(CommandHandler("add", tg_add_command))
+        tg_builder.add_handler(CommandHandler("remove", tg_remove_command))
+        tg_builder.add_handler(CommandHandler("list", tg_list_command))
+        
+        await tg_builder.initialize()
+        await tg_builder.start()
+        await tg_builder.updater.start_polling(drop_pending_updates=True)
+        global_state.tg_app = tg_builder
+        print("📊 Telegram Bot Interface Hooked & Polling.")
+    else:
+        print("⚠️ No TELEGRAM_BOT_TOKEN detected. Alert interfaces disabled.")
+
     engine = CompleteSentinelEngine()
-    task = asyncio.create_task(engine.engine_core_loop())
+    quant_task = asyncio.create_task(engine.engine_core_loop())
     
-    yield  
+    yield  # Render holds the active container right here
     
-    task.cancel()
-    try:
-        await task
-    except asyncio.CancelledError:
-        print("🛑 Engine context cleanly unmounted on container teardown.")
+    # Cleanup protocols on teardown
+    quant_task.cancel()
+    if global_state.tg_app:
+        await global_state.tg_app.updater.stop()
+        await global_state.tg_app.stop()
+        await global_state.tg_app.shutdown()
+    print("🛑 Multi-vector systems decoupled successfully.")
 
 app = FastAPI(lifespan=lifespan)
 
-# FIXED: Replaced @app.get with api_route to accept both HEAD and GET requests seamlessly
 @app.api_route("/", methods=["GET", "HEAD"])
 def health_check():
-    """Satisfies Render's web service health check router loops instantly."""
-    return {
-        "status": "HEALTHY",
-        "engine": "The Quantum-Sentinel V8 OKX Cloud Pro",
-        "timestamp": datetime.now(timezone.utc).isoformat()
-    }
+    return {"status": "HEALTHY", "engine": "Sentinel V8 TG-Interactive", "tracked_count": len(global_state.tracked_symbols)}
 
 # ==========================================
-# 1. DATABASE LAYERS
+# 3. QUANT LAYER PERSISTENCE (SQLite Map)
 # ==========================================
 class AdvancedSignalDatabase:
     def __init__(self, db_name="sentinel_quantum_v8.db"):
@@ -68,7 +150,7 @@ class AdvancedSignalDatabase:
                 """)
                 conn.commit()
         except Exception as db_err:
-            print(f"⚠️ Persistence engine warning: {str(db_err)}")
+            print(f"⚠️ DB Warning: {str(db_err)}")
 
     def log_trade_intent(self, symbol: str, direction: str, entry: float, sl: float, tp: float, conf: float, f_matrix: Dict):
         try:
@@ -84,7 +166,7 @@ class AdvancedSignalDatabase:
                       f_matrix["choch"], f_matrix["sweep"], f_matrix["ob"], f_matrix["fvg"], f_matrix["bias"], conf))
                 conn.commit()
         except Exception as log_err:
-            print(f"❌ Core journal write warning: {str(log_err)}")
+            print(f"❌ DB Log Fail: {str(log_err)}")
 
     def query_bayesian_weights(self) -> Dict[str, float]:
         base_weights = {"BIAS": 20.0, "SWEEP": 20.0, "CHOCH": 25.0, "OB": 15.0, "FVG": 20.0}
@@ -92,12 +174,9 @@ class AdvancedSignalDatabase:
             with sqlite3.connect(self.db_name) as conn:
                 df = pd.read_sql_query("SELECT * FROM quantitative_journal WHERE trade_status = 'CLOSED'", conn)
             if df.empty: return base_weights
-            
-            prior_win_rate = 0.50
-            m_weight = 10.0
+            prior_win_rate, m_weight = 0.50, 10.0
             calculated_weights = {}
             features = {"feature_choch": "CHOCH", "feature_sweep": "SWEEP", "feature_ob": "OB", "feature_fvg": "FVG", "feature_premium": "BIAS"}
-            
             for db_col, weight_name in features.items():
                 feature_trades = df[df[db_col] == 1]
                 total_trades = len(feature_trades)
@@ -107,38 +186,29 @@ class AdvancedSignalDatabase:
                     calculated_weights[weight_name] = float(bayesian_wr * 100)
                 else:
                     calculated_weights[weight_name] = base_weights[weight_name]
-                    
             total_sum = sum(calculated_weights.values())
-            for k in calculated_weights:
-                calculated_weights[k] = (calculated_weights[k] / total_sum) * 100
+            for k in calculated_weights: calculated_weights[k] = (calculated_weights[k] / total_sum) * 100
             return calculated_weights
-        except Exception:
-            return base_weights
+        except Exception: return base_weights
 
 # ========================================================
-# 2. QUANT MATHEMATICAL & GEOMETRIC DETECTORS
+# 4. STRUCTURAL GEOMETRIC & VALIDATION ENGINES
 # ========================================================
 class StructuralStateEngine:
     def __init__(self, sensitivity: int = 3):
         self.sensitivity = sensitivity
 
     def map_market_geometry(self, df: pd.DataFrame) -> Tuple[pd.DataFrame, Dict]:
-        if len(df) < 20:
-            return df, {"last_hl": None, "last_lh": None, "dealing_high": None, "dealing_low": None, "bos_confirmed": False}
-            
+        if len(df) < 20: return df, {"last_hl": None, "last_lh": None, "dealing_high": None, "dealing_low": None, "bos_confirmed": False}
         highs, lows, closes = df['high'].values, df['low'].values, df['close'].values
-        df['swing_high'] = 0.0
-        df['swing_low'] = 0.0
+        df['swing_high'], df['swing_low'] = 0.0, 0.0
         sh_points, sl_points = [], []
         
         for i in range(self.sensitivity, len(df) - self.sensitivity):
-            if all(highs[i] >= highs[i-j] for j in range(1, self.sensitivity+1)) and \
-               all(highs[i] > highs[i+j] for j in range(1, self.sensitivity+1)):
+            if all(highs[i] >= highs[i-j] for j in range(1, self.sensitivity+1)) and all(highs[i] > highs[i+j] for j in range(1, self.sensitivity+1)):
                 df.at[df.index[i], 'swing_high'] = highs[i]
                 sh_points.append(highs[i])
-                
-            if all(lows[i] <= lows[i-j] for j in range(1, self.sensitivity+1)) and \
-               all(lows[i] < lows[i+j] for j in range(1, self.sensitivity+1)):
+            if all(lows[i] <= lows[i-j] for j in range(1, self.sensitivity+1)) and all(lows[i] < lows[i+j] for j in range(1, self.sensitivity+1)):
                 df.at[df.index[i], 'swing_low'] = lows[i]
                 sl_points.append(lows[i])
 
@@ -152,15 +222,9 @@ class StructuralStateEngine:
             recent_low_target = sl_points[-1]
             atr_approx = np.mean(highs[-14:] - lows[-14:])
             body_size = abs(closes[-1] - df['open'].iloc[-1])
-            if closes[-1] < recent_low_target and body_size > (atr_approx * 0.75):
-                true_bearish_bos = True
+            if closes[-1] < recent_low_target and body_size > (atr_approx * 0.75): true_bearish_bos = True
 
-        state_meta = {
-            "last_hl": last_valid_hl, "last_lh": last_valid_lh,
-            "dealing_high": dealing_high, "dealing_low": dealing_low,
-            "bos_confirmed": true_bearish_bos
-        }
-        return df, state_meta
+        return df, {"last_hl": last_valid_hl, "last_lh": last_valid_lh, "dealing_high": dealing_high, "dealing_low": dealing_low, "bos_confirmed": true_bearish_bos}
 
 class TrueLifecycleScanner:
     @staticmethod
@@ -197,8 +261,7 @@ class TrueLifecycleScanner:
         c, o, h, l, v = df['close'].values, df['open'].values, df['high'].values, df['low'].values, df['volume'].values
         rolling_vol = df['volume'].rolling(20).mean().values
         ob_profile = {"ob_active": False, "breaker_active": False}
-        if len(df) < 20 or not state_meta["dealing_high"]:
-            return ob_profile
+        if len(df) < 20 or not state_meta["dealing_high"]: return ob_profile
 
         for i in range(5, len(df) - 1):
             if np.isnan(rolling_vol[i]): continue
@@ -208,15 +271,10 @@ class TrueLifecycleScanner:
                 if (len(df) - i) > 60: continue
                 post_highs = h[i+1:]
                 touches = sum(1 for x in post_highs if ob_bottom <= x <= ob_top)
-                if ob_bottom <= c[-1] <= ob_top and touches <= 3:
-                    ob_profile["ob_active"] = True
-                if state_meta["dealing_high"] > ob_top and c[-1] < ob_bottom:
-                    ob_profile["breaker_active"] = True
+                if ob_bottom <= c[-1] <= ob_top and touches <= 3: ob_profile["ob_active"] = True
+                if state_meta["dealing_high"] > ob_top and c[-1] < ob_bottom: ob_profile["breaker_active"] = True
         return ob_profile
 
-# ========================================================
-# 3. BOUNDARY MANAGEMENT LAYER (Risk & Execution Window)
-# ========================================================
 class ProductionRiskManager:
     @staticmethod
     def generate_protected_boundaries(df: pd.DataFrame, direction: str, entry: float, state_meta: Dict) -> Tuple[float, float, float]:
@@ -225,8 +283,7 @@ class ProductionRiskManager:
         low_cp = np.abs(df['low'] - df['close'].shift())
         tr = pd.concat([high_low, high_cp, low_cp], axis=1).max(axis=1)
         atr = tr.rolling(14).mean().iloc[-1]
-        if pd.isna(atr) or atr <= 0:
-            atr = float(df['close'].std() * 0.1 if df['close'].std() > 0 else entry * 0.001)
+        if pd.isna(atr) or atr <= 0: atr = float(df['close'].std() * 0.1 if df['close'].std() > 0 else entry * 0.001)
         if direction == "SHORT":
             sl = max(state_meta["dealing_high"], entry + (atr * 1.5))
             tp = entry - (abs(sl - entry) * 3.0)
@@ -245,19 +302,16 @@ class SessionKillzoneFilter:
         return False, "OUTSIDE_KILLZONE"
 
 # ========================================================
-# 4. CORE PIPELINE CORE MANAGER
+# 5. MAIN EXECUTION PIPELINE LOOP
 # ========================================================
 class CompleteSentinelEngine:
     def __init__(self):
         self.db = AdvancedSignalDatabase()
         self.structure_engine = StructuralStateEngine()
-        # FIXED: Changed Binance style pairs to OKX Spot/Futures uniform notation
-        self.tracked_symbols = ["BTC/USDT", "ETH/USDT"]
 
     async def process_market_execution(self, symbol: str, exchange: ccxt.Exchange):
         allowed, session_name = SessionKillzoneFilter.check_killzone()
-        if not allowed:
-            return
+        if not allowed: return
 
         try:
             ltf_ohlcv = await exchange.fetch_ohlcv(symbol, '15m', limit=150)
@@ -273,15 +327,13 @@ class CompleteSentinelEngine:
             vol_valid = volumes[-1] > vol_ma[-1] * 1.5 if not np.isnan(vol_ma[-1]) else False
             
             true_bear_choch = False
-            if state_meta["last_hl"] and closes[-1] < state_meta["last_hl"] and vol_valid:
-                true_bear_choch = True
+            if state_meta["last_hl"] and closes[-1] < state_meta["last_hl"] and vol_valid: true_bear_choch = True
                 
             liquidity = TrueLifecycleScanner.calculate_clustered_liquidity(df_ltf)
             true_bear_sweep = False
             if liquidity["EQH"]:
                 max_eqh_target = max(liquidity["EQH"])
-                if df_ltf['high'].iloc[-1] > max_eqh_target and closes[-1] < max_eqh_target:
-                    true_bear_sweep = True
+                if df_ltf['high'].iloc[-1] > max_eqh_target and closes[-1] < max_eqh_target: true_bear_sweep = True
                     
             fvg_profile = TrueLifecycleScanner.scan_fvg_depth_profiles(df_ltf)
             ob_profile = TrueLifecycleScanner.qualify_institutional_blocks(df_ltf, state_meta)
@@ -307,27 +359,29 @@ class CompleteSentinelEngine:
                 sl, tp, atr_val = ProductionRiskManager.generate_protected_boundaries(df_ltf, "SHORT", entry, state_meta)
                 self.db.log_trade_intent(symbol, "SHORT", entry, sl, tp, confidence_index, features_matrix)
                 
-                print(f"\n==========================================================")
-                print(f"🚨 [V8 SIGNAL TRIGGERED] SENTINEL EXECUTION ALIGNED")
-                print(f"==========================================================")
-                print(f"➔ Symbol Node: {symbol} | Active Session Focus: {session_name}")
-                print(f"➔ Execution Matrix -> Entry: {entry} | SL: {sl:.2f} | TP: {tp:.2f}")
-                print(f"📊 BAYESIAN RESOLUTION CONFLUENCE: {confidence_index:.2f}% CONFIDENCE.")
-                print(f"==========================================================\n")
+                # DISPATCH LIVE TO PHONE USING TG BOT
+                alert_text = (
+                    "🚨 *[V8 SENTINEL TRIGGER ALERT]* 🚨\n\n"
+                    f"• *Asset Node:* `{symbol}`\n"
+                    f"• *Action:* `SHORT (SELL)`\n"
+                    f"• *Entry Target:* `{entry}`\n"
+                    f"• *Stop Loss:* `{sl:.2f}`\n"
+                    f"• *Take Profit:* `{tp:.2f}`\n\n"
+                    f"📊 *Bayesian Confidence Score:* `{confidence_index:.2f}%`"
+                )
+                await send_telegram_alert(alert_text)
         except Exception as err:
             print(f"❌ [CRITICAL PIPELINE ERROR] Asset {symbol} context faulted: {str(err)}")
 
     async def engine_core_loop(self):
-        """Infinite tracking execution loop syncing historical price series charts."""
-        print("\n" + "="*60)
-        print(" 🚀 THE QUANT-SENTINEL V8 SYSTEM STATUS: ENGINE ACTIVE 🚀")
-        print("="*60 + "\n")
-
-        # FIXED: Shifted from ccxt.binance() to ccxt.okx() to bypass cloud region ban firewalls
         exchange_client = ccxt.okx({"enableRateLimit": True})
+        # Initial Welcome Message sent directly to your chat when server spins up
+        await send_telegram_alert("🦅 *The Quantum-Sentinel V8 Framework has safely booted on Render Production Cloud. Listening for configurations...*")
+        
         try:
             while True:
-                for symbol in self.tracked_symbols:
+                # Dynamic Loop: Pulls instantly from the volatile global state modified by your TG inputs
+                for symbol in list(global_state.tracked_symbols):
                     await self.process_market_execution(symbol, exchange_client)
                 await asyncio.sleep(300)
         except Exception as loop_err:
@@ -335,9 +389,6 @@ class CompleteSentinelEngine:
         finally:
             await exchange_client.close()
 
-# ========================================================
-# 5. EXPLICIT RUN PROTOCOL USING THE CORRECT INVOCATION
-# ========================================================
 if __name__ == "__main__":
     port_allocated = int(os.environ.get("PORT", 10000))
     print(f"📡 System Engine Binding Server Proxy onto Port: {port_allocated}")
