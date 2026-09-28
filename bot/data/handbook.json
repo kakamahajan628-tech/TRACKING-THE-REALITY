@@ -1,0 +1,362 @@
+[
+  {
+    "id": "H01",
+    "name": "What game are you playing?",
+    "page": 10,
+    "description": "Start by matching your instrument, time horizon, and decision process.",
+    "check": "Does the role, holding horizon and invalidation rule match the original mandate?",
+    "type": "operator review",
+    "status": "Manual input required; never inferred from price alone"
+  },
+  {
+    "id": "H02",
+    "name": "Instruments, ownership, and hidden claims",
+    "page": 12,
+    "description": "A familiar price chart can sit on top of a very different legal and economic exposure.",
+    "check": "What asset or contractual claim is owned, and who controls withdrawal?",
+    "type": "operator review",
+    "status": "Manual input required; never inferred from price alone"
+  },
+  {
+    "id": "H03",
+    "name": "Build a survival boundary",
+    "page": 14,
+    "description": "Money needed for life should not depend on a favorable market path.",
+    "check": "Is essential money separated from capital that can be lost?",
+    "type": "operator review",
+    "status": "Manual input required; never inferred from price alone"
+  },
+  {
+    "id": "H04",
+    "name": "Think in distributions, not certainties",
+    "page": 16,
+    "description": "A trade has a range of possible outcomes, including outcomes your model omits.",
+    "check": "Which adverse outcomes are omitted from the forecast?",
+    "type": "operator review",
+    "status": "Manual input required; never inferred from price alone"
+  },
+  {
+    "id": "H05",
+    "name": "Build a learning system",
+    "page": 18,
+    "description": "Study should produce better decisions, not a growing collection of untested opinions.",
+    "check": "What falsifiable lesson and next observation will this scan produce?",
+    "type": "operator review",
+    "status": "Manual input required; never inferred from price alone"
+  },
+  {
+    "id": "H06",
+    "name": "Biases become dangerous through action",
+    "page": 20,
+    "description": "Naming a bias is useful only if it changes a decision rule.",
+    "check": "Which written rule interrupts confirmation bias or anchoring?",
+    "type": "operator review",
+    "status": "Manual input required; never inferred from price alone"
+  },
+  {
+    "id": "H07",
+    "name": "FOMO, revenge, and the urgency trap",
+    "page": 22,
+    "description": "Urgency is a feeling. It is not evidence that a trade is good.",
+    "check": "Is urgency changing size, entry or stop without new evidence?",
+    "type": "operator review",
+    "status": "Manual input required; never inferred from price alone"
+  },
+  {
+    "id": "H08",
+    "name": "Emotion, physiology, and usable judgment",
+    "page": 24,
+    "description": "Treat internal state as information about decision quality, not as a market signal.",
+    "check": "Is the operator rested and able to follow the existing plan?",
+    "type": "operator review",
+    "status": "Manual input required; never inferred from price alone"
+  },
+  {
+    "id": "H09",
+    "name": "Deliberate practice and the trading journal",
+    "page": 26,
+    "description": "The journal is an evidence record, not a courtroom for defending the last trade.",
+    "check": "Was the thesis, expected loss and evidence saved before the outcome?",
+    "type": "operator review",
+    "status": "Manual input required; never inferred from price alone"
+  },
+  {
+    "id": "H10",
+    "name": "Crowds, narratives, and reflexive markets",
+    "page": 28,
+    "description": "A story can influence price without being a reliable valuation model.",
+    "check": "Is narrative strength supported by observable activity and token economics?",
+    "type": "operator review",
+    "status": "Manual input required; never inferred from price alone"
+  },
+  {
+    "id": "H11",
+    "name": "The auction behind the chart",
+    "page": 30,
+    "description": "Price is the result of trades and quotes, not a vote on intrinsic value.",
+    "check": "Are displayed quotes being confused with completed transactions?",
+    "type": "operator review",
+    "status": "Manual input required; never inferred from price alone"
+  },
+  {
+    "id": "H12",
+    "name": "Liquidity is multidimensional",
+    "page": 32,
+    "description": "A market can look busy and still be expensive to exit.",
+    "check": "Can the intended position exit through the available spread and depth?",
+    "type": "operator review",
+    "status": "Manual input required; never inferred from price alone"
+  },
+  {
+    "id": "H13",
+    "name": "Whale activity without mythology",
+    "page": 34,
+    "description": "Observe actions and constraints; do not pretend to read a large participant's mind.",
+    "check": "What alternative explanations exist for a large transfer or order?",
+    "type": "operator review",
+    "status": "Manual input required; never inferred from price alone"
+  },
+  {
+    "id": "H14",
+    "name": "Read price, volume, OI, and funding together",
+    "page": 36,
+    "description": "More data helps only when its units, coverage, and limits are understood.",
+    "check": "Are price, traded volume, OI and funding interpreted with consistent units and times?",
+    "type": "operator review",
+    "status": "Manual input required; never inferred from price alone"
+  },
+  {
+    "id": "H15",
+    "name": "Execution is part of the strategy",
+    "page": 38,
+    "description": "A signal that cannot be traded economically is not a usable retail edge.",
+    "check": "Do fees, realized slippage and fill quality leave room for the proposed edge?",
+    "type": "operator review",
+    "status": "Manual input required; never inferred from price alone"
+  },
+  {
+    "id": "H16",
+    "name": "Decentralized markets and on-chain evidence",
+    "page": 40,
+    "description": "Removing an intermediary can introduce a different set of execution dependencies.",
+    "check": "Are pool liquidity, gas, MEV and contract dependencies understood?",
+    "type": "operator review",
+    "status": "Manual input required; never inferred from price alone"
+  },
+  {
+    "id": "H17",
+    "name": "Perpetual futures from first principles",
+    "page": 42,
+    "description": "Understand the payoff before choosing the leverage setting.",
+    "check": "Are payoff, notional, collateral and contract multiplier explicit?",
+    "type": "operator review",
+    "status": "Manual input required; never inferred from price alone"
+  },
+  {
+    "id": "H18",
+    "name": "Mark price, margin, and account structure",
+    "page": 44,
+    "description": "Liquidation is governed by the venue's risk system, which may use a different price from your chart.",
+    "check": "Are mark price, maintenance margin and cross/isolated account rules known?",
+    "type": "operator review",
+    "status": "Manual input required; never inferred from price alone"
+  },
+  {
+    "id": "H19",
+    "name": "Liquidation cascades and path dependence",
+    "page": 46,
+    "description": "A forecast about the final price cannot rescue a position that fails on the way there.",
+    "check": "Would an adverse path liquidate the position before the forecast horizon?",
+    "type": "operator review",
+    "status": "Manual input required; never inferred from price alone"
+  },
+  {
+    "id": "H20",
+    "name": "Funding, basis, and the cost of waiting",
+    "page": 48,
+    "description": "A directional view can be right while the chosen instrument is too expensive to hold.",
+    "check": "Are funding cash flows and dated-futures basis costs measured separately?",
+    "type": "operator review",
+    "status": "Manual input required; never inferred from price alone"
+  },
+  {
+    "id": "H21",
+    "name": "Options, volatility, and convexity",
+    "page": 50,
+    "description": "Options add dimensions of risk that a directional chart cannot show.",
+    "check": "Are strike, expiry, settlement, volatility and nonlinear risks specified?",
+    "type": "operator review",
+    "status": "Manual input required; never inferred from price alone"
+  },
+  {
+    "id": "H22",
+    "name": "Hedging and residual risk",
+    "page": 52,
+    "description": "A hedge changes the risk profile; it does not make the position disappear.",
+    "check": "Can the hedge leg obtain cash when an offsetting gain is inaccessible?",
+    "type": "operator review",
+    "status": "Manual input required; never inferred from price alone"
+  },
+  {
+    "id": "H23",
+    "name": "Size from the loss budget",
+    "page": 54,
+    "description": "Choose the exposure that fits the plan, then check whether the instrument can support it.",
+    "check": "Is quantity the minimum allowed by planned loss, cash, notional and liquidity constraints?",
+    "type": "operator review",
+    "status": "Manual input required; never inferred from price alone"
+  },
+  {
+    "id": "H24",
+    "name": "R-multiples, expectancy, and drawdown",
+    "page": 56,
+    "description": "A good performance record describes both reward and the route taken to obtain it.",
+    "check": "Are net R-multiples calculated from the original risk budget and all trades?",
+    "type": "operator review",
+    "status": "Manual input required; never inferred from price alone"
+  },
+  {
+    "id": "H25",
+    "name": "Portfolio risk and correlation",
+    "page": 58,
+    "description": "Five different tickers can still be one concentrated economic bet.",
+    "check": "Do different tickers share the same BTC, sector, venue or collateral risks?",
+    "type": "operator review",
+    "status": "Manual input required; never inferred from price alone"
+  },
+  {
+    "id": "H26",
+    "name": "Tail risk and stress testing",
+    "page": 60,
+    "description": "Model what a normal backtest is least likely to teach you.",
+    "check": "Can the portfolio survive gaps, depegs, illiquidity and unavailable withdrawals?",
+    "type": "operator review",
+    "status": "Manual input required; never inferred from price alone"
+  },
+  {
+    "id": "H27",
+    "name": "Stops, scaling, and leverage discipline",
+    "page": 62,
+    "description": "Every position adjustment is a new decision about exposure.",
+    "check": "Does every size increase pass a fresh risk review without widening loss limits?",
+    "type": "operator review",
+    "status": "Manual input required; never inferred from price alone"
+  },
+  {
+    "id": "H28",
+    "name": "Technical analysis as a testable language",
+    "page": 64,
+    "description": "A chart pattern becomes useful when its definition survives being written before the outcome.",
+    "check": "Can the chart pattern be specified before observing its outcome?",
+    "type": "operator review",
+    "status": "Manual input required; never inferred from price alone"
+  },
+  {
+    "id": "H29",
+    "name": "Breakouts, fakeouts, and liquidity sweeps",
+    "page": 66,
+    "description": "A breakout is an event to evaluate, not an instruction to chase.",
+    "check": "Is the breakout accepted after the boundary, and what would invalidate it?",
+    "type": "operator review",
+    "status": "Manual input required; never inferred from price alone"
+  },
+  {
+    "id": "H30",
+    "name": "Trend following and patience",
+    "page": 68,
+    "description": "A trend strategy tries to participate in persistent moves while accepting repeated failures to start one.",
+    "check": "Is the trend rule explicit about repeated small failed entries and exit?",
+    "type": "operator review",
+    "status": "Manual input required; never inferred from price alone"
+  },
+  {
+    "id": "H31",
+    "name": "Mean reversion and range trading",
+    "page": 70,
+    "description": "A stretched price is not the same as a mispriced asset.",
+    "check": "Does mean-reversion evidence survive breaks, costs and unstable relationships?",
+    "type": "operator review",
+    "status": "Manual input required; never inferred from price alone"
+  },
+  {
+    "id": "H32",
+    "name": "Build one complete playbook",
+    "page": 72,
+    "description": "A strategy is a chain of decisions, including when it must stand down.",
+    "check": "Does the playbook include context, trigger, size, exit and no-trade conditions?",
+    "type": "operator review",
+    "status": "Manual input required; never inferred from price alone"
+  },
+  {
+    "id": "H33",
+    "name": "Backtesting without fooling yourself",
+    "page": 74,
+    "description": "The best historical result is often the one most contaminated by selection.",
+    "check": "Are fees, slippage, survivorship, look-ahead and all tested variants recorded?",
+    "type": "operator review",
+    "status": "Manual input required; never inferred from price alone"
+  },
+  {
+    "id": "H34",
+    "name": "Performance metrics and uncertainty",
+    "page": 76,
+    "description": "A number becomes meaningful only after its denominator, horizon, and assumptions are stated.",
+    "check": "Are net returns distinguished from deposits and all metric horizons specified?",
+    "type": "operator review",
+    "status": "Manual input required; never inferred from price alone"
+  },
+  {
+    "id": "H35",
+    "name": "Regimes, model risk, and research governance",
+    "page": 78,
+    "description": "Sophisticated reasoning includes knowing when a model should lose authority.",
+    "check": "What event would reduce or suspend reliance on the fitted model?",
+    "type": "operator review",
+    "status": "Manual input required; never inferred from price alone"
+  },
+  {
+    "id": "H36",
+    "name": "Operations, automation, and incident response",
+    "page": 80,
+    "description": "A strategy is only as controlled as its worst unattended failure.",
+    "check": "Are stale feeds, restarts, duplicate notifications and lost state visible?",
+    "type": "operator review",
+    "status": "Manual input required; never inferred from price alone"
+  },
+  {
+    "id": "H37",
+    "name": "Build a spot-investment thesis",
+    "page": 82,
+    "description": "A useful asset can still be a poor investment at a given price or through a given token.",
+    "check": "Does token ownership capture value even if network usage grows?",
+    "type": "operator review",
+    "status": "Manual input required; never inferred from price alone"
+  },
+  {
+    "id": "H38",
+    "name": "Allocation, DCA, and rebalancing",
+    "page": 84,
+    "description": "A long-term process still needs rules for how much to own and when to reconsider.",
+    "check": "Are allocation, DCA and rebalance decisions bounded by thesis and capital policy?",
+    "type": "operator review",
+    "status": "Manual input required; never inferred from price alone"
+  },
+  {
+    "id": "H39",
+    "name": "Due diligence and the reasons to reject",
+    "page": 86,
+    "description": "A research process should make it easier to say no.",
+    "check": "Which missing evidence or concentration is sufficient to reject the asset?",
+    "type": "operator review",
+    "status": "Manual input required; never inferred from price alone"
+  },
+  {
+    "id": "H40",
+    "name": "Think like an investment committee",
+    "page": 88,
+    "description": "Make the decision defensible before the outcome is visible.",
+    "check": "Can researcher, skeptic, risk manager and executor defend this decision independently?",
+    "type": "operator review",
+    "status": "Manual input required; never inferred from price alone"
+  }
+]

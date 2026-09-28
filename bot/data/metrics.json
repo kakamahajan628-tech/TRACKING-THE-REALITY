@@ -1,0 +1,1362 @@
+[
+  {
+    "id": 1,
+    "name": "Market Beta",
+    "page": 7,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "How much of the move belongs to the\nmarket?\nBeta measures the slope of an asset's historical return response to a specified benchmark.\nSamjho: the question is how strongly the asset usually reacts, not whether its latest candle\nlooks impressive.",
+    "method": "β_i,m = Cov(r_i, r_m) / Var(r_m).\nOLS: r_i,t = α + β r_m,t + e_t.\nOLS with intercept on synchronized simple UTC-daily returns; sample covariance uses n-1.",
+    "interpretation": "The screen shows SOL outperforming BTC. The model shows that most of the difference is\nconsistent with higher beta. The remaining 0.4 points are a model residual, not proof of\ninformed buying.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 2,
+    "name": "The hidden identity: Beta = Correlation x Volatility Ratio",
+    "page": 8,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Separate shared direction from\namplified volatility\nThe beta identity splits sensitivity into correlation and relative volatility. Two assets can have\nthe same beta for very different reasons: one tracks BTC closely; another is volatile but only\nloosely connected.",
+    "method": "β = ρ_i,m * (σ_i / σ_m).\nAlgebraic identity using covariance-consistent sample correlation and standard deviations.",
+    "interpretation": "AVAX may look like a stronger BTC proxy. Its lower correlation means much of its volatility is\nunrelated to BTC; sizing from beta alone misses that residual risk.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 3,
+    "name": "BTC Beta",
+    "page": 11,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Read the altcoin through the BTC anchor\nBTC beta isolates sensitivity to Bitcoin returns. It is useful for market exposure and hedging\nresearch, but it cannot absorb every technology, sector or token-supply event.",
+    "method": "β_i,BTC = Cov(r_i, r_BTC) / Var(r_BTC).\nBTC is the benchmark; UTC-daily simple returns in the stated case.",
+    "interpretation": "The apparent BTC-led decline contains additional LINK weakness. Confirmed venue selling\nsupports a supply explanation, while the depositor's intent remains unknown.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 4,
+    "name": "ETH Beta",
+    "page": 12,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Choose the benchmark that matches the\nbusiness\nETH beta asks how an asset responds to Ethereum. For ecosystem research it may add context\nbeyond BTC, although separate single-factor betas do not identify independent causal effects.",
+    "method": "β_i,ETH = Cov(r_i, r_ETH) / Var(r_ETH).\nETH is the benchmark; use when smart-contract ecosystem exposure is the research question.",
+    "interpretation": "ARB appears to lead the market. Much of the move may belong to a shared Ethereum theme;\nthe approximate 0.46-point remainder still needs transaction and liquidity evidence.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 5,
+    "name": "Total Crypto Market Beta",
+    "page": 13,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Measure exposure to a defined crypto\nuniverse\nTotal-market beta depends on the index as much as the asset. Weights, stablecoins, wrapped\nduplicates and stale prices decide what the phrase market return actually means.",
+    "method": "β_i,MKT = Cov(r_i, r_MKT) / Var(r_MKT).\nTotal-crypto benchmark return must be a documented investable or research index; never regress price levels.",
+    "interpretation": "Broad-market outperformance is meaningful only against a documented universe. A\nstablecoin-heavy index can mechanically make volatile tokens look unusually strong.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 6,
+    "name": "Sector Beta",
+    "page": 14,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Distinguish sector participation from\ntoken leadership\nSector beta compares an asset with economically related peers. A leave-one-out basket\nprevents the token from explaining itself, while liquidity screens stop stale peers from\ndistorting the comparison.",
+    "method": "β_i,sector = Cov(r_i, r_sector) / Var(r_sector).\nSector basket weights and rebalancing rules are frozen in metadata before estimation.",
+    "interpretation": "AAVE is participating strongly in a sector move. The evidence does not yet justify calling every\npercentage point protocol-specific repricing.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 7,
+    "name": "Multi Factor Beta",
+    "page": 15,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Decompose the candle into competing\nfactors\nMultiple regression estimates conditional exposures simultaneously. Each coefficient describes\nthe incremental association with one factor after accounting for the others in the chosen\nmodel.",
+    "method": "r_i,t = α + β_1 f_1,t + ... + β_K f_K,t + e_t. OLS: b_hat=(X'X)^(-1)X'y.\nOLS with intercept; factors expressed in stationary changes/returns and aligned without look-ahead.",
+    "interpretation": "The screen suggests isolated momentum. The decomposition suggests common BTC and\nETH-related forces plus an unresolved residual.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 8,
+    "name": "Rolling Beta",
+    "page": 17,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Watch the sensitivity change beneath the\nprice\nRolling beta repeats the same estimator on trailing windows. It exposes changing exposure, but\nadjacent estimates share observations and are not independent discoveries.",
+    "method": "β_t(W) = Cov_W(r_i,r_m) / Var_W(r_m), using observations t-W+1,...,t.\nTrailing rolling window; example W=90 observations, no centered windows in live automation.",
+    "interpretation": "The market may be showing an unusually weak coin; part of the decline could be ordinary\nexposure under a newly higher beta regime.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 9,
+    "name": "Upside Beta",
+    "page": 18,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Measure participation when BTC rises\nUpside beta estimates the return slope only on positive benchmark periods. It describes\nconditional sensitivity, which is different from averaging positive asset returns.",
+    "method": "β_up = Cov(r_i,r_m | r_m>0) / Var(r_m | r_m>0).\nConditional OLS/covariance on benchmark-positive observations only.",
+    "interpretation": "INJ's rally is broadly consistent with its historical upside response. Whether it keeps that gain\nduring stress is a separate research question.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 10,
+    "name": "Downside Beta",
+    "page": 19,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Find the exposure that appears in a\nselloff\nDownside beta estimates sensitivity on negative BTC periods. It makes asymmetric exposure\nvisible, but it is not a worst-loss bound or a liquidation model.",
+    "method": "β_down = Cov(r_i,r_m | r_m<0) / Var(r_m | r_m<0).\nConditional OLS/covariance on benchmark-negative observations only.",
+    "interpretation": "The red candle is not fully explained by BTC. Thin depth may amplify the remaining weakness\nwithout requiring a coordinated attack.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 11,
+    "name": "Bull Regime Beta",
+    "page": 20,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Test exposure inside a declared uptrend\nBull-regime beta restricts estimation to a predeclared market state. Here the state is known at\nthe previous close: BTC above its trailing 60-close average.",
+    "method": "β_bull = Cov(r_i, r_BTC | B_t=1) / Var(r_BTC | B_t=1).\nB_t = 1 if BTC close_(t-1) > SMA60_(t-1).\nHouse regime rule, fixed before the measured return; strict inequality. A tie is unclassified. OLS with intercept within the state.",
+    "interpretation": "The regime helps organize evidence, not certify a bull market. RENDER's additional strength\nremains an attribution problem.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 12,
+    "name": "Bear Regime Beta",
+    "page": 21,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Re-estimate sensitivity when the market\nis defensive\nBear-regime beta uses periods classified as weak before their returns occur. It tests whether a\nholding becomes more sensitive precisely when portfolio diversification matters.",
+    "method": "β_bear = Cov(r_i, r_BTC | D_t=1) / Var(r_BTC | D_t=1).\nD_t = 1 if BTC close_(t-1) < SMA60_(t-1).\nHouse regime rule using only the previous close and its 60-close average. Ties unclassified; window and state version stored.",
+    "interpretation": "ADA may appear inexplicably weak, but defensive-state exposure explains part of the\ndifference. The regime label does not predict when weakness ends.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 13,
+    "name": "Lagged Beta",
+    "page": 22,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Investigate whether the response arrives\nlate\nLagged beta relates today's asset return to an earlier BTC return. It tests delayed association,\nwhich can also arise from stale prices or misaligned clocks.",
+    "method": "r_i,t = α + β_k r_m,t-k + e_t; lagged_β(k)=β_k.\nSingle-lag OLS with intercept; k is explicit in metadata.",
+    "interpretation": "The chart suggests a leader-follower pattern. Most of the ATOM return still requires another\nexplanation, and clock alignment can erase the apparent lag.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 14,
+    "name": "Adjusted Beta",
+    "page": 23,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Shrink a noisy estimate without hiding it\nAdjusted beta pulls a raw estimate toward a reference value. The 0.67/0.33 convention is a\nstability transform inherited from equity practice, not an empirically guaranteed crypto rule.",
+    "method": "β_adj = 0.67*β_raw + 0.33*1.00.\nBlume-style shrinkage convention. We use it only as a stability transform, not as a crypto law.",
+    "interpretation": "A calmer adjusted number is not evidence that SEI became safer. It expresses a prior belief\nabout noisy estimates.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 15,
+    "name": "Beta Stability",
+    "page": 24,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Ask whether the reaction estimate is\ndependable\nBeta stability measures how much estimated sensitivity varies across review dates. Lower\nvariability improves interpretability, but stability in one regime cannot guarantee stability in\nthe next.",
+    "method": "BetaStabilityRisk = SD({β_t(W)}) across evaluation dates; lower is more stable.\nHouse diagnostic: sample SD of 60-observation rolling betas over the review interval.",
+    "interpretation": "The average looks moderate. The sequence suggests rising market sensitivity, so the latest\nestimate and its uncertainty deserve more weight in review.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 16,
+    "name": "Covariance",
+    "page": 26,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Measure the shared movement before\nnormalizing it\nCovariance records whether two return series deviate from their averages together. Its units\nare squared returns; the magnitude changes when percentages replace decimal returns.",
+    "method": "s_xy = sum[(x_t-x_bar)(y_t-y_bar)]/(n-1).\nUnbiased sample covariance convention.",
+    "interpretation": "The three sessions show strong shared direction. Such a tiny demonstration sample explains\narithmetic, not estimation reliability.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 17,
+    "name": "Pearson Correlation",
+    "page": 27,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Quantify how closely the asset follows\nthe anchor\nPearson correlation measures linear co-movement on a scale from -1 to +1. It normalizes\ncovariance but says nothing by itself about how large the asset's moves are.",
+    "method": "ρ_hat = sum[(x-x_bar)(y-y_bar)] / sqrt(sum[(x-x_bar)^2] sum[(y-y_bar)^2]).\nPearson product-moment correlation.",
+    "interpretation": "A high correlation supports a shared-market interpretation. It does not guarantee matching\nreturns on every day or protection during a tail event.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 18,
+    "name": "Spearman Rank Correlation",
+    "page": 28,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Check whether the relationship survives\nextreme values\nSpearman correlation compares return ranks. It captures monotonic association with less\nsensitivity to the size of extreme observations, while discarding economically important\nmagnitude information.",
+    "method": "ρ_s = Corr(rank(x), rank(y)); with no ties, ρ_s = 1 - 6*sum(d_i^2)/[n(n^2-1)].\nAverage ranks for ties; Pearson correlation of ranks is implementation convention.",
+    "interpretation": "UNI often preserves the ordering of BTC's stronger and weaker days. That observation does\nnot quantify a hedge ratio or the cost of an extreme token event.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 19,
+    "name": "Kendall Tau",
+    "page": 29,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Count how often the ordering agrees\nKendall tau measures concordant versus discordant observation pairs. Its tie-adjusted form is\nuseful when data contain repeated values, but it is not numerically interchangeable with\nPearson correlation.",
+    "method": "τ_b = (C-D) / sqrt[(C+D+T_x)(C+D+T_y)].\nKendall tau-b, tie-adjusted.",
+    "interpretation": "FIL broadly follows BTC's ordering in this sample, although its biggest loss could still be much\nlarger than BTC's.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 20,
+    "name": "Rolling Correlation",
+    "page": 30,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Detect when diversification begins to\ndisappear\nRolling correlation follows changes in shared direction. A rise can reveal market-wide stress,\nbut the estimate also depends on the volatility and event mix inside the window.",
+    "method": "ρ_t(W)=Corr(r_i,r_m) over t-W+1,...,t.\nTrailing Pearson rolling correlation; W stored explicitly.",
+    "interpretation": "Holding different tickers may look diversified. Rising common movement means the basket\ncan behave increasingly like one risk position.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 21,
+    "name": "Cross Correlation",
+    "page": 31,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Separate a genuine lead from a clock\nmismatch\nCross-correlation measures association at specified positive and negative lags. The sign\nconvention here is Corr(asset at t, BTC at t-k), so positive k means BTC leads.",
+    "method": "ρ_xy(k)=Corr(x_t, y_{t-k}).\nCross-correlation at signed lag k; timestamps normalized before lagging.",
+    "interpretation": "A visually delayed response may be a data-delivery delay. Only a relationship that survives\ntimestamp repair and later testing merits further research.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 22,
+    "name": "Partial Correlation",
+    "page": 32,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Remove BTC before calling two alts\nconnected\nPartial correlation asks whether two assets remain related after controlling for a shared factor.\nIt can weaken a misleading peer narrative, but it removes only the modeled linear common\ncomponent.",
+    "method": "ρ_xy.z = (ρ_xy-ρ_xz*ρ_yz) / sqrt[(1-ρ_xz^2)(1-ρ_yz^2)].\nFirst-order partial correlation controlling one factor z; matrix method used for >1 controls.",
+    "interpretation": "The chart suggests a tight sector pair. Most of that relationship may be BTC exposure; the\nremaining association needs its own economic explanation.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 23,
+    "name": "Alpha or Intercept",
+    "page": 34,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Find the average return left after\nexposure\nAn intercept is the fitted average return at zero benchmark return. In a raw-return model it is\nnot automatically investment skill, and it becomes CAPM-style alpha only with consistent\nexcess returns.",
+    "method": "α_hat = y_bar - β_hat*x_bar in single-factor OLS with intercept.\nOLS intercept; for excess-return CAPM variants both y and x are excess returns.",
+    "interpretation": "STX appears to earn return beyond its BTC exposure. The estimate describes this sample;\npersistent edge requires forward evidence after costs.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 24,
+    "name": "R Squared",
+    "page": 35,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Ask how much of the variation the model\nexplains\nR-squared compares model error with total variation around the asset's mean. It evaluates\nin-sample fit, not the probability that the next forecast is correct.",
+    "method": "R^2 = 1 - SSE/SST, where SSE=sum(e_t^2), SST=sum[(y_t-y_bar)^2].\nOLS with intercept.",
+    "interpretation": "The model explains 70% of sample variation. It does not establish that 70% of today's move\nwas caused by BTC.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 25,
+    "name": "Adjusted R Squared",
+    "page": 36,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Make extra factors earn their place\nAdjusted R-squared penalizes adding regressors to an in-sample model. It is a useful\ndiagnostic, but only future-data evaluation can show whether complexity improves practical\nperformance.",
+    "method": "AdjR^2 = 1 - (1-R^2)*(n-1)/(n-k-1), k=number of regressors excluding intercept.\nStandard adjusted R-squared.",
+    "interpretation": "A more elaborate explanation may fit better merely because it has more parameters. The\npenalty encourages restraint but does not eliminate selection bias.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 26,
+    "name": "Residual",
+    "page": 37,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Investigate what the market model\ncannot explain\nA residual is actual return minus fitted return. For live research, compute it using a model\nfitted before the observation; otherwise it is an in-sample description.",
+    "method": "e_t = y_t - y_hat_t.\nOLS residual using fitted values from the specified model.",
+    "interpretation": "The excess move is real relative to this model. Calling it organic demand requires evidence\nbeyond the residual itself.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 27,
+    "name": "Residual Volatility",
+    "page": 38,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Measure the risk that a BTC hedge leaves\nbehind\nResidual volatility measures the dispersion of returns not captured by the factor model. A\nhigh-beta hedge can still leave large token-specific fluctuations.",
+    "method": "σ_e = SD(e_t); annualized residual volatility = σ_e*sqrt(A).\nSample SD of residuals, A=365 for non-overlapping UTC daily crypto returns.",
+    "interpretation": "A hedged basket may look market-neutral while remaining highly volatile. Residual risk must\nreceive a separate risk budget.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 28,
+    "name": "Standard Error of Beta",
+    "page": 39,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Put uncertainty around the sensitivity\nestimate\nThe standard error measures sampling uncertainty in a coefficient. The classical formula is a\nreference case; dependence and changing volatility require robust covariance estimation.",
+    "method": "SE(β_hat) = sqrt[s_e^2 / sum(x_t-x_bar)^2], with s_e^2=SSE/(n-2), for classical\nhomoskedastic OLS.\nClassical reference formula; production inference replaces this with HAC/Newey-West when residual dependence is present.",
+    "interpretation": "A clean fitted line can conceal clustered errors. The wider HAC uncertainty may be more\nappropriate than the reassuring classical band.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 29,
+    "name": "T Statistic",
+    "page": 40,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Test a specific exposure claim\nA coefficient test compares an estimate with an explicit null value. Testing beta against zero\nanswers whether exposure exists; testing against one asks whether sensitivity differs from\nBTC-like exposure.",
+    "method": "t = (β_hat-β_0)/SE(β_hat); common null β_0=0.\nTwo-sided OLS coefficient test; production uses HAC SE where required.",
+    "interpretation": "Evidence that XMR has market exposure is much stronger than evidence that its exposure\nexceeds one. A single unlabeled statistic obscures that distinction.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 30,
+    "name": "P Value",
+    "page": 41,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Read statistical surprise without\ninventing certainty\nA p-value is the probability, under the specified null and reference model, of a statistic at least\nas extreme as observed. It is not the probability that the hypothesis is true.",
+    "method": "Classical: p = 2[1 - F_t(|t|; n-k-1)].\nLarge-sample HAC convention here: p = 2[1 - Phi(|z|)].\nThe case uses the asymptotic normal reference; an exact finite-sample Student-t claim is reserved for the classical model.",
+    "interpretation": "A small p-value says the result is unusual under a model. It does not establish a profitable\nstrategy, a causal driver or a 98.36% chance of being right.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 31,
+    "name": "Confidence Interval",
+    "page": 42,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Replace a point estimate with a plausible\nrange\nA confidence interval makes estimation uncertainty visible. Its coverage interpretation\nconcerns repeated samples under model assumptions, not the probability of a realized\nnext-day return.",
+    "method": "Classical CI = β_hat ± t_(1-a/2,n-k-1) SE.\nHAC asymptotic CI = β_hat ± z_(1-a/2) SE_HAC.\nThe example uses a 95% normal-reference HAC interval. Model and regime uncertainty are additional, not captured\nautomatically.",
+    "interpretation": "The point estimate looks exact on a dashboard. The interval reveals that materially different\nhedge sizes remain compatible with the sample.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 32,
+    "name": "RMSE",
+    "page": 43,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Penalize large forecasting mistakes\nexplicitly\nRoot mean squared error measures typical squared forecast error in return units. Its stronger\npenalty on large misses makes it relevant when occasional severe errors dominate risk.",
+    "method": "RMSE = sqrt[(1/n)*sum(e_t^2)].\nIn-sample residual RMSE unless explicitly evaluated out-of-sample.",
+    "interpretation": "An articulate factor story can still be too imprecise for the proposed decision. Forecast scale\nmatters as much as fit.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 33,
+    "name": "MAE",
+    "page": 44,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Measure the ordinary miss without\nsquaring it\nMean absolute error averages error magnitudes. It is easier to interpret than squared loss and\nless dominated by one extreme miss, but it can underemphasize tail damage.",
+    "method": "MAE = (1/n)*sum|e_t|.\nMean absolute error on the stated evaluation sample.",
+    "interpretation": "A tolerable average absolute miss can coexist with an economically damaging outlier. Separate\nroutine forecast quality from stress performance.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 34,
+    "name": "Simple Return",
+    "page": 46,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Start with the return an investor actually\nexperiences\nSimple return measures proportional price change. It is the natural building block for cash\nportfolio returns when adjusted prices and any distributions are handled consistently.",
+    "method": "R_t = P_t/P_(t-1) - 1.\nClose-to-close simple return on a defined UTC boundary.",
+    "interpretation": "The strongest percentage move is not necessarily independent strength. The next step is to\ncompare SOL's return with its pre-estimated BTC exposure.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 35,
+    "name": "Log Return",
+    "page": 47,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Use additive returns for multi-period\nanalysis\nLog return is the logarithm of the price ratio. It adds through time for one asset, but portfolio\nlog return is not generally the weighted average of constituent log returns.",
+    "method": "r_t = ln(P_t/P_(t-1)).\nContinuously compounded/log return.",
+    "interpretation": "A difference between simple and log returns is not a data contradiction. It grows as moves\nbecome larger.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 36,
+    "name": "Cumulative Return",
+    "page": 48,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Follow the wealth path through gains\nand losses\nCumulative return compounds the sequence of simple returns. The order affects the drawdown\npath even when the final product is unchanged.",
+    "method": "R_cum = product_t(1+R_t)-1.\nGeometrically linked simple returns.",
+    "interpretation": "LINK still outperforms, but much less than a casual addition suggests. Evaluate the path and\nthe final wealth separately.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 37,
+    "name": "Mean Return",
+    "page": 49,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Do not confuse an average day with\ncompounded growth\nArithmetic mean return summarizes the average one-period outcome. It is useful in\nexpected-return models but can overstate sustainable growth when returns are volatile.",
+    "method": "R_bar = (1/n)*sum R_t.\nArithmetic sample mean.",
+    "interpretation": "Positive average returns can be economically weak after volatility drag, fees and estimation\nerror. A short average is particularly fragile.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 38,
+    "name": "Median Return",
+    "page": 50,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Describe the typical session when one\nevent dominates\nThe median is the middle ordered observation. It resists extreme values but cannot describe\nthe entire payoff distribution or replace the mean in every portfolio calculation.",
+    "method": "Median = 50th percentile of ordered returns.\nSample median with conventional midpoint interpolation for even n.",
+    "interpretation": "The apparent consistency disappears when typical and average outcomes are separated. The\n12% event still matters for wealth and risk.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 39,
+    "name": "Variance",
+    "page": 51,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Measure dispersion in squared-return\nunits\nVariance measures average squared deviations using a stated denominator. It is central to\ncovariance models, although standard deviation is easier to read in return units.",
+    "method": "s^2 = sum(R_t-R_bar)^2/(n-1).\nUnbiased sample variance.",
+    "interpretation": "A higher variance means more dispersed outcomes in this window. It does not distinguish\nupside excitement from downside harm.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 40,
+    "name": "Standard Deviation",
+    "page": 52,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Bring risk back into percentage-return\nunits\nStandard deviation is the square root of variance. It summarizes dispersion around the mean\nbut does not imply that a normal distribution describes the tails.",
+    "method": "s = sqrt[s^2].\nSample standard deviation.",
+    "interpretation": "A quiet daily candle does not erase a volatile return history. Standard deviation measures the\nbroader sample, while a tail model asks a different question.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 41,
+    "name": "Annualized Volatility",
+    "page": 53,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Annualize without changing the\nunderlying evidence\nAnnualized volatility rescales periodic standard deviation under a variance-scaling\nassumption. The square-root rule is a convention, not a forecast guarantee under serial\ndependence or changing regimes.",
+    "method": "σ_ann = σ_period*sqrt(A).\nSquare-root-of-time annualization; A=365 for non-overlapping daily crypto returns.",
+    "interpretation": "Annualized values are comparable only when return sampling and scaling match.\nWeekday-only macro models require their own clock.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 42,
+    "name": "Realized Volatility",
+    "page": 54,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Recover the movement hidden inside a\nquiet close\nRealized volatility aggregates squared intraday log returns. A small close-to-close return can\ncoexist with large intraday movement, which matters for execution and leveraged positions.",
+    "method": "RV_day = sqrt(sum_j log(P_j/P_(j-1))^2).\nMulti-day annualized RV = sqrt[365 x mean_d(RV_day^2)].\nIntraday log-return realized variance. One-day annualization is sqrt(365) times daily RV; multi-day estimates average variance\nbefore taking the root.",
+    "interpretation": "The close shows no net move. The path shows meaningful risk and potential stop-outs, with\nneither bullish nor bearish conviction implied.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 43,
+    "name": "EWMA Volatility",
+    "page": 55,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Let recent shocks influence the volatility\nestimate\nEWMA gives declining weight to older squared returns. Its responsiveness is controlled by\nlambda; the legacy 0.94 daily choice is explicit here so results can be reproduced.",
+    "method": "σ_t^2 = λ*σ_(t-1)^2 + (1-λ)*r_(t-1)^2.\nRiskMetrics EWMA daily convention; lambda=0.94 is retained as a named legacy convention, not a crypto threshold.",
+    "interpretation": "A rising forecast reflects recent information, not advance knowledge of the next loss. EWMA\ncan lag a sudden change.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 44,
+    "name": "Downside Deviation",
+    "page": 56,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Measure shortfalls relative to a declared\ntarget\nDownside deviation measures returns below a minimum acceptable return, using all\nobservations in the denominator. The target is an input to the analysis, not a universal\ndefinition of a bad day.",
+    "method": "DownsideDev(MAR)=sqrt[(1/n)*sum min(0,R_t-MAR)^2]. Annualize by sqrt(A).\nTarget/MAR=0 in examples unless strategy mandate specifies another target.",
+    "interpretation": "The current gain can coexist with substantial downside variability. The target and observation\nfrequency must accompany the number.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 45,
+    "name": "Semivariance",
+    "page": 57,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Keep the downside risk in variance form\nZero-target semivariance is the squared downside deviation under the same convention. It\ndistinguishes harmful variation from upside movements but still ignores path and liquidity.",
+    "method": "Semivariance_0 = (1/n)*sum min(0,R_t)^2.\nZero-target lower semivariance.",
+    "interpretation": "Positive days do not cancel squared shortfalls. The metric separates favorable volatility from\nthe losses that consume a downside budget.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 46,
+    "name": "Skewness",
+    "page": 58,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Look for a distribution tilted toward\nsevere losses\nMoment skewness measures distributional asymmetry. Negative skew often means the left tail\nis longer, but a few observations can make the estimate unstable.",
+    "method": "g1 = m3 / m2^(3/2), where mk=(1/n)*sum(R-R_bar)^k.\nMoment skewness (unadjusted Fisher-Pearson moment coefficient); bias-corrected software values may differ.",
+    "interpretation": "Frequent small gains may conceal infrequent large losses. Negative sample skew is a warning\nabout payoff shape, not a precise forecast of the next crash.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 47,
+    "name": "Kurtosis",
+    "page": 59,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Identify tails that a normal model may\nunderstate\nExcess kurtosis compares the fourth standardized moment with the normal benchmark of\nthree. It is sensitive to extreme observations and should not be interpreted as a simple measure\nof peak height.",
+    "method": "ExcessKurtosis = m4/m2^2 - 3.\nFisher excess-kurtosis moment convention; Pearson kurtosis would omit -3.",
+    "interpretation": "The market may look quiet between bursts. A large fourth moment records how much the\nextremes dominate the distribution.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 48,
+    "name": "Drawdown",
+    "page": 61,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Measure how far capital sits below its\nprevious peak\nDrawdown compares current marked wealth with its running high. It captures the path\nexperienced by an investor, unlike a one-period volatility statistic.",
+    "method": "DD_t = V_t / max_(s<=t)V_s - 1.\nPeak-to-current percentage drawdown on a marked-to-market wealth index.",
+    "interpretation": "A strong rebound can still leave the position deeply underwater. Evaluate recovery relative to\nthe prior peak, not only yesterday's close.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 49,
+    "name": "Maximum Drawdown",
+    "page": 62,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Locate the deepest capital impairment\nMaximum drawdown is the worst peak-to-trough decline in the observation window. It is\npath-dependent and sample-specific, not a future maximum loss promise.",
+    "method": "MDD = min_t DD_t; reported loss magnitude is |MDD|.\nMaximum peak-to-trough drawdown over the stated sample.",
+    "interpretation": "An end-to-end return can hide a much more difficult investor experience. The interim peak\nchanges the risk story.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 50,
+    "name": "Recovery Time",
+    "page": 63,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Measure the time capital remains\nunderwater\nRecovery time measures duration from a prior peak to its first full recovery. A position that has\nnot recovered has a censored duration, not a completed recovery time.",
+    "method": "RecoveryTime = t_recovery - t_peak, where V_t_recovery >= V_t_peak after the\ndrawdown.\nPeak-to-full-recovery duration convention.",
+    "interpretation": "A rebound narrative omits the opportunity cost of immobilized capital. Both depth and\nduration belong in the review.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 51,
+    "name": "Sharpe Ratio",
+    "page": 64,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Evaluate excess return per unit of\nordinary risk\nThe Sharpe ratio divides mean excess return by its standard deviation. It is highly sensitive to\nexpected-return estimation and can look strong for strategies with hidden tail losses.",
+    "method": "Sharpe = (mean(R_p-R_f)/SD(R_p-R_f))*sqrt(A).\nArithmetic mean excess return divided by sample SD; A=365 for daily crypto observations.",
+    "interpretation": "A positive ratio indicates favorable historical reward relative to dispersion. It says little about\nthe reliability of the estimated mean or the worst liquidation path.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 52,
+    "name": "Sortino Ratio",
+    "page": 65,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Judge reward against harmful variability\nSortino compares mean return above a target with downside deviation. It focuses the\ndenominator on shortfalls, which makes the target and negative-observation count essential\ncontext.",
+    "method": "Sortino = [mean(R_p-MAR)*A] / DownsideDev_ann(MAR).\nMAR=0 in the stated case; downside deviation uses all n observations.",
+    "interpretation": "The payoff looks favorable relative to observed shortfalls. Sparse loss observations do not\nestablish that downside risk is structurally small.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 53,
+    "name": "Calmar Ratio",
+    "page": 66,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Compare growth with the worst observed\ndrawdown\nCalmar relates annualized geometric growth to maximum drawdown magnitude. It links\nreturn to path damage, but both quantities depend heavily on the chosen start and end dates.",
+    "method": "CAGR = (V_end/V_start)^(365/calendar_days) - 1.\nCalmar = CAGR / |MDD|.\nGeometric annualized return and maximum drawdown from the same wealth path and evaluation window.",
+    "interpretation": "The strategy earned growth at the cost of a substantial interim loss. Neither quantity should be\ncherry-picked from different windows.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 54,
+    "name": "Treynor Ratio",
+    "page": 67,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Separate reward for market exposure\nfrom total risk\nTreynor divides annual excess return by beta. It evaluates reward per unit of systematic\nexposure and is inappropriate as a complete risk measure for a concentrated altcoin position.",
+    "method": "Treynor = (R_p-R_f) / β_p,m.\nAnnualized excess return divided by market beta.",
+    "interpretation": "The market-exposure reward looks adequate in isolation. Token-specific risk and liquidity\nremain outside the denominator.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 55,
+    "name": "Jensen Alpha",
+    "page": 68,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Audit return beyond the excess-return\nmodel\nJensen alpha is the intercept in an excess-return regression. Arithmetic annualization is a\nreporting approximation, not the compounded wealth generated by an investable alpha\nstream.",
+    "method": "R_p,t - R_f,t = α + β(R_BTC,t - R_f,t) + e_t.\nα_hat = mean(R_p-R_f) - β_hat mean(R_BTC-R_f).\nJensenAlpha_ann = 365 x α_daily.\nJensen-style excess-return OLS with BTC as the declared crypto benchmark. Arithmetic annualization is an approximation; it is\nnot a claim that BTC is the theoretical CAPM market portfolio.",
+    "interpretation": "A positive point estimate may disappear after uncertainty and unmodeled exposures are\nconsidered. Excess-return inputs must match the financing convention.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 56,
+    "name": "Information Ratio",
+    "page": 69,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Measure the quality of returns beyond a\nbenchmark\nInformation ratio measures mean active return relative to active-return volatility. It rewards\nconsistent benchmark outperformance, not merely a high absolute return.",
+    "method": "IR = mean(R_p-R_b)/SD(R_p-R_b)*sqrt(A).\nInformation ratio on synchronous active returns.",
+    "interpretation": "The basket adds a modest amount of return relative to its benchmark deviations. A high-beta\nstrategy can still owe much of this to the sample regime.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 57,
+    "name": "Tracking Error",
+    "page": 70,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Quantify how differently the portfolio\nbehaves\nTracking error is the volatility of active returns. It measures benchmark deviation, which may\nreflect intentional positioning or uncontrolled exposure rather than poor performance.",
+    "method": "TrackingError = SD(R_p-R_b)*sqrt(A).\nAnnualized SD of active returns.",
+    "interpretation": "A less volatile portfolio can still deviate substantially from BTC. Tracking error and total\nvolatility answer different questions.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 58,
+    "name": "Upside Capture",
+    "page": 71,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Evaluate participation during\nbenchmark gains\nUpside capture compares geometric mean returns on periods when the benchmark rises. It\ndescribes conditional compounded participation and is distinct from an upside regression\nslope.",
+    "method": "UpsideCapture = [GM(R_p | R_b>0) / GM(R_b | R_b>0)]*100, GM=geometric mean period\nreturn.\nConditional geometric capture convention; benchmark-positive periods only.",
+    "interpretation": "PENDLE amplified positive benchmark periods. The price of that amplification appears only\nwhen downside periods and risk are also examined.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 59,
+    "name": "Downside Capture",
+    "page": 72,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Assess participation in the benchmark's\nlosses\nDownside capture compares conditional geometric returns when the benchmark falls. When\nboth returns are negative, a ratio above 100% means deeper loss participation.",
+    "method": "DownsideCapture = [GM(R_p | R_b<0) / GM(R_b | R_b<0)]*100.\nConditional geometric capture on benchmark-negative periods.",
+    "interpretation": "ICP historically lost roughly one-and-a-half times the benchmark's conditional geometric\nreturn in this small demonstration. That is descriptive, not a downside cap.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 60,
+    "name": "Historical VaR",
+    "page": 74,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Locate the empirical loss threshold\nHistorical VaR is a quantile of realized losses over a specified horizon. It describes a threshold\nexceeded with a chosen tail probability under the empirical distribution, not the largest\npossible loss.",
+    "method": "Sort losses L_(1) <= ... <= L_(n). h=(n-1)q.\nVaR_q = L_(floor(h)+1) + (h-floor(h))[L_(ceil(h)+1)-L_(floor(h)+1)].\nLinear empirical quantile, with one-based ordered losses and zero-based interpolation coordinate h. Loss L=-R.",
+    "interpretation": "Today's loss is inside the historical threshold. That does not certify safety, especially when the\nsample contains only one observation in the upper 10%.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 61,
+    "name": "Parametric VaR",
+    "page": 75,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "See what the normal-loss assumption\nbuys and misses\nGaussian parametric VaR converts a mean and standard deviation into a loss quantile. Its\nconvenience depends on a distributional assumption that crypto tails often violate.",
+    "method": "NormalVaR_q = z_q*σ_R - μ_R for loss L=-R.\nGaussian parametric one-period VaR; z_q is standard-normal quantile.",
+    "interpretation": "A smooth normal curve may show manageable risk while jumps and fat tails create much\nlarger losses.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 62,
+    "name": "Monte Carlo VaR",
+    "page": 76,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Simulate the portfolio rather than just its\nheadline price\nMonte Carlo VaR is a quantile of simulated, repriced losses. The simulation is only as credible\nas its dependence, volatility, jump, liquidity and instrument assumptions.",
+    "method": "Siμlate joint risk factors, fully reprice each scenario to obtain L_s.\nFor the stated case: VaR_q = L_(ceil(qS)) after sorting S losses.\nNearest-rank empirical quantile for the Monte Carlo case; differs deliberately from the linear historical quantile in metric 60.\nModel, seed and units are recorded.",
+    "interpretation": "A large simulation count reduces numerical sampling noise. It does not cure a model that\nexcludes the event that matters.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 63,
+    "name": "CVaR or Expected Shortfall",
+    "page": 77,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Estimate the loss after the threshold is\nbreached\nExpected shortfall averages the worst specified fraction of loss probability. It asks how severe\nthe tail is after VaR, with careful treatment of discrete samples and ties.",
+    "method": "ES_q = [1/(1-q)] integral_q^1 VaR_u du.\nFor continuous distributions: ES_q = E[L | L >= VaR_q].\nFor empirical distributions, integrate the inverse empirical CDF with fractional weight at the tail boundary. The case has an\nexact integer tail count.",
+    "interpretation": "VaR marks the entrance to the tail; ES describes its average severity. Neither is a hard loss cap.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 64,
+    "name": "Stress Test",
+    "page": 78,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Revalue the book under a coherent shock\nA stress test applies a specified adverse scenario to positions. It is a conditional damage\nestimate, not a statement that the scenario has a known probability.",
+    "method": "StressPnL = sum_i w_i * (P_i^stress/P_i - 1) for linear spot holdings; derivatives\nrequire full repricing.\nDeterministic scenario revaluation, not a probability statement.",
+    "interpretation": "A diversified-looking allocation can suffer jointly when liquidity withdraws. The weakest\nexecutable market may dominate the practical loss.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 65,
+    "name": "Scenario Analysis",
+    "page": 79,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Compare mechanisms before choosing\none narrative\nScenario analysis evaluates multiple internally consistent states. It is especially useful when\nseveral explanations fit today's evidence and their future paths differ.",
+    "method": "ScenarioPnL_s = V(x+Δ x_s)/V(x)-1, evaluated for every scenario s.\nFull-revaluation scenario set; report worst, median and component contributions without assigning fake probabilities.",
+    "interpretation": "The current chart may support one confident story. A scenario set preserves credible\nalternatives and exposes the consequences of being wrong.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 66,
+    "name": "Ulcer Index",
+    "page": 80,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Combine drawdown depth and\npersistence\nThe Ulcer Index is the root mean square of percentage drawdowns. Repeated underwater\nobservations increase it even when the maximum drawdown does not change.",
+    "method": "UlcerIndex = sqrt[(1/n)*sum(D_t^2)], with D_t expressed as percentage drawdown from\nprior peak.\nPercentage-point drawdown convention.",
+    "interpretation": "The latest rebound looks encouraging, yet repeated time below the peak remains part of the\ninvestor's experience.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 67,
+    "name": "Omega Ratio",
+    "page": 81,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Compare total gains and shortfalls\naround a target\nOmega compares the sum of returns above a target with the sum of shortfalls below it. The\ncomplete empirical distribution enters, but the result is highly target-dependent.",
+    "method": "Omega(τ)=sum max(R_t-τ,0) / sum max(τ-R_t,0) in the empirical sample.\nEmpirical Omega; tau=0 in the example.",
+    "interpretation": "The payoff looks attractive relative to zero but weak relative to a demanding target. Neither\nreading is meaningful without naming that target.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 68,
+    "name": "Autocorrelation",
+    "page": 83,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Test whether returns retain a short\nmemory\nAutocorrelation relates an asset's returns to its own lagged returns. A nonzero estimate can\nreflect genuine dynamics, stale data, microstructure or overlapping measurement.",
+    "method": "ρ_k = Corr(R_t, R_(t-k)).\nSample Pearson autocorrelation at lag k.",
+    "interpretation": "The series shows modest persistence in the sample. That association may vanish after latency,\nspread and costs are included.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 69,
+    "name": "ACF",
+    "page": 84,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Read the entire lag pattern rather than\none bar\nThe autocorrelation function presents dependence over multiple lags using one stated\nestimator. It helps distinguish isolated lag effects from a persistent decay pattern.",
+    "method": "ACF(k)=γ(k)/γ(0), γ(k)=(1/n)*sum_(t=k+1..n)(R_t-R_bar)(R_(t-k)-R_bar).\nBiased-denominator ACF convention consistent across lags for display.",
+    "interpretation": "A visible ACF bar is a diagnostic clue. A four-point illustration cannot support an economic\nclaim of predictability.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 70,
+    "name": "PACF",
+    "page": 85,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Remove intermediate lags before\ncrediting a distant one\nPartial autocorrelation at lag k measures the final lag coefficient in a projection on lags one\nthrough k. It isolates incremental linear dependence after the intervening lags.",
+    "method": "PACF(k)=φ_(k,k), the coefficient on R_(t-k) in the linear projection of R_t on lags\n1..k.\nYule-Walker/linear-projection definition; implementation method recorded.",
+    "interpretation": "A second ACF bar does not necessarily imply a second independent predictive channel. The\nshorter lag may carry the entire linear relation.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 71,
+    "name": "Stationarity",
+    "page": 86,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Ask whether one statistical description\nremains credible\nWeak stationarity requires a constant mean, finite constant variance and lag-dependent\ncovariance. It is a property of a process, not a single numerical score.",
+    "method": "Weak stationarity requires E[X_t]=μ constant, Var[X_t]=γ(0) finite/constant, and\nCov(X_t,X_(t- k))=γ(k) dependent only on lag k.\nDefinition, not a single test statistic; operational checks use ADF plus KPSS and rolling moments.",
+    "interpretation": "A chart can appear to oscillate around a moving level while the process itself has changed.\nStatistical assumptions require testing and economic review.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 72,
+    "name": "ADF Test",
+    "page": 87,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Test the unit-root hypothesis explicitly\nThe Augmented Dickey-Fuller test evaluates a unit-root null using a regression with lagged\ndifferences. Its statistic has a nonstandard reference distribution determined by the\nspecification.",
+    "method": "Δ y_t = a + γ y_(t-1) + sum_(j=1..p) d_j Δ y_(t-j) + e_t.\nADF statistic = γ_hat / SE(γ_hat); H0: γ=0.\nIntercept-only ADF convention here, lag selection recorded. A trend term is a different specification with different critical\nvalues.",
+    "interpretation": "Rejection supports mean-reversion research under the model. Breaks, costs and hedge\ninstability can still make the apparent opportunity unusable.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 73,
+    "name": "KPSS Test",
+    "page": 88,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Challenge stationarity from the opposite\ndirection\nKPSS starts with a stationarity null. Used alongside ADF, it helps identify cases where the data\nare consistent, contradictory or simply too weak to support a firm conclusion.",
+    "method": "KPSS statistic = [sum_(t=1..T) S_t^2] / [T^2 * s_LR^2], S_t=cuμlative residuals from\ndeterministic component. H0: stationarity.\nKPSS level-stationary or trend-stationary specification is explicit; long-run variance estimator recorded.",
+    "interpretation": "The test does not prove stationarity. A near-boundary result is especially sensitive to\nbandwidth, sample and deterministic terms.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 74,
+    "name": "Z Score",
+    "page": 89,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Measure surprise relative to a past\nbaseline\nA z-score expresses a deviation in baseline standard-deviation units. For an alert, the baseline\nhere excludes the current observation so the event cannot dilute its own surprise.",
+    "method": "z_t = [x_t - mean(x_(t-W),...,x_(t-1))] / SD(x_(t-W),...,x_(t-1)).\nHouse alert convention excludes the current observation. Sample SD uses W-1. Zero baseline variance yields unavailable, not\ninfinity.",
+    "interpretation": "The move is unusual relative to recent modeled behavior. Its sign does not tell whether\ninformed repricing will continue or a squeeze will fade.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 75,
+    "name": "Cointegration",
+    "page": 90,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Test a shared long-run relationship\nwithout confusing it with correlation\nCointegration means nonstationary series share a stationary linear combination. High return\ncorrelation alone is insufficient, and the economic basis of the relationship must be defensible.",
+    "method": "Engle-Granger: y_t = a + b*x_t + e_t; series are cointegrated if residual e_t is\nstationary under a residual unit-root test.\nTwo-step Engle-Granger with documented deterministic terms and lag selection.",
+    "interpretation": "A temporary divergence may be a spread deviation or a permanent structural break. The\nstatistical test cannot supply a missing economic anchor.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 76,
+    "name": "Half Life of Mean Reversion",
+    "page": 91,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Estimate how quickly a deviation might\ndecay\nAR(1) half-life converts a stable persistence coefficient into the time needed for expected\ndeviation magnitude to halve. It assumes the fitted dynamics remain valid.",
+    "method": "x_t = c + φ x_(t-1) + e_t.\nFor 0<|φ|<1, magnitude half-life = ln(0.5)/ln(|φ|).\nPositive phi gives monotone expected decay; negative phi alternates sign. phi=0 decays in one step; |phi|>=1 does not\nsupport stable decay.",
+    "interpretation": "The estimate describes expected decay, not a deadline by which the trade must recover.\nLiquidity and model failure can dominate the path.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 77,
+    "name": "Granger Causality Test",
+    "page": 92,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Test incremental forecasting content\nwithout claiming causation\nA Granger test asks whether lagged BTC returns improve prediction of an asset beyond its own\nlags. The word causality refers to a forecasting definition, not economic proof of cause.",
+    "method": "F = [(SSR_R-SSR_U)/m] / [SSR_U/(T-k_U)] comparing restricted y-lag model vs\nunrestricted model adding m lags of x.\nLinear Granger causality F-test; lag order chosen before inference.",
+    "interpretation": "Lagged BTC contains incremental in-sample information under this model. Shared news,\ntimestamp problems and omitted factors can still explain it.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 78,
+    "name": "Hurst Exponent",
+    "page": 93,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Investigate persistence across several\nscales\nThe Hurst exponent summarizes scaling in a specified process and estimator. Classical\nrescaled-range estimates are sensitive to short samples, trends and short-run dependence.",
+    "method": "Y_k = sum_(j=1..k)(x_j - mean(x_1,...,x_n)).\nR(n)=max(Y_1,...,Y_n)-min(Y_1,...,Y_n); S(n)=population SD(x_1,...,x_n).\nH = OLS slope of ln(mean_block[R(n)/S(n)]) on ln(n).\nClassical rescaled-range convention, with non-overlapping blocks at predeclared sizes and zero-variance blocks excluded.\nFinite samples and short-memory effects can bias the estimate.",
+    "interpretation": "The scaling pattern suggests persistence in this constructed sample. A trend, volatility\nclustering or finite-sample bias may produce a similar estimate.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 79,
+    "name": "GARCH Style Conditional Volatility",
+    "page": 94,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Model volatility as a changing state\nGARCH forecasts conditional variance from prior shocks and prior variance. It models\nvolatility clustering, not the sign of the next return.",
+    "method": "σ_t^2 = ω + a e_(t-1)^2 + b σ_(t-1)^2.\nω>0; a,b>=0; a+b<1 for covariance-stationary finite-variance specification.\nGARCH(1,1), with Gaussian or variance-standardized Student-t innovations; distribution and parameter-estimation window\nrecorded.",
+    "interpretation": "A falling token can enter a high-volatility state without the model predicting another fall.\nInnovation distribution and persistence remain crucial.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 80,
+    "name": "Change Point Detection",
+    "page": 95,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Recognize when yesterday's baseline\nstops fitting\nCUSUM accumulates small departures from a fixed reference mean. A signal indicates a\npotential shift requiring investigation, with false-alarm behavior determined by its calibration.",
+    "method": "C_t+ = max[0, C_(t-1)+ + x_t - μ0 - k].\nC_t- = min[0, C_(t-1)- + x_t - μ0 + k]. Alert if C_t+>h or C_t-<-h.\nTwo-sided tabular CUSUM on a declared standardized baseline. k and h are calibration parameters, not universal crypto\nthresholds.",
+    "interpretation": "The apparent series of ordinary gains may represent a persistent change in residual behavior.\nIt could be a new regime or a feed problem.",
+    "dependency": "Aligned UTC daily prices"
+  },
+  {
+    "id": 81,
+    "name": "Trading Volume",
+    "page": 97,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Count executed activity without\nassigning conviction\nTrading volume sums executed notional over a declared instrument and venue universe. Every\ntrade has a buyer and seller; high volume alone does not identify who initiated it or why.",
+    "method": "DollarVolume_T = sum_j Price_j * Quantity_j over executed trades j in interval T.\nExecuted-trade notional; venue and instrument universe explicit.",
+    "interpretation": "The burst establishes activity. It may represent directional demand, arbitrage, forced covering\nor repeated turnover of the same inventory.",
+    "dependency": "Venue microstructure"
+  },
+  {
+    "id": 82,
+    "name": "Turnover",
+    "page": 98,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Relate activity to the size of the\ncirculating asset\nTurnover scales spot traded notional by circulating market capitalization. It measures activity\nrelative to asset size, not the fraction of distinct investors who traded.",
+    "method": "Turnover_T = DollarVolume_T / MarketCap_T.\nSpot-equivalent dollar volume divided by circulating market cap; derivatives excluded unless separately labeled.",
+    "interpretation": "High turnover looks like broad participation but can arise from concentrated speculation or\nmechanical market making.",
+    "dependency": "Venue microstructure"
+  },
+  {
+    "id": 83,
+    "name": "Bid Ask Spread",
+    "page": 99,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Read the immediate cost of crossing the\nmarket\nQuoted spread measures the gap between best bid and ask relative to their midpoint. It is the\nvisible first layer of execution cost, before depth, market impact and fees.",
+    "method": "QuotedSpread_bps = (BestAsk-BestBid)/Mid * 10,000, Mid=(Ask+Bid)/2.\nTop-of-book quoted spread immediately before observation/trade.",
+    "interpretation": "A modest price move can hide deteriorating tradability. A narrow spread on one venue does\nnot establish deep liquidity across the market.",
+    "dependency": "Venue microstructure"
+  },
+  {
+    "id": 84,
+    "name": "Market Depth",
+    "page": 100,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Measure executable-looking depth on\nboth sides\nMarket depth sums displayed size within a fixed distance from mid, separately for bids and\nasks. It describes available intent at the observation time, not guaranteed fills.",
+    "method": "Depth_bps(b) = sum quote notional with bid prices >= Mid*(1-b/10000) plus ask side\nseparately within symmetric band.\nReport bid and ask depth separately at a declared band b; example b=10 bps.",
+    "interpretation": "The snapshot shows a stronger bid side. Cancellation behavior can invalidate the apparent\nsupport before it becomes executed evidence.",
+    "dependency": "Venue microstructure"
+  },
+  {
+    "id": 85,
+    "name": "Slippage",
+    "page": 101,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Measure the gap between the decision\nand the fill\nSlippage compares execution VWAP with the pre-trade midpoint, signed so adverse execution\nis positive. Fees and financing should be shown separately from the price concession.",
+    "method": "Slippage_bps = side*(VWAP_exec-Mid_pre)/Mid_pre*10,000, side=+1 buy, -1 sell.\nDecision/pre-trade mid benchmark; include fees separately.",
+    "interpretation": "A correct directional call can still have poor economics. The executable price matters more\nthan the chart's mid-price return.",
+    "dependency": "Venue microstructure"
+  },
+  {
+    "id": 86,
+    "name": "Price Impact",
+    "page": 102,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Observe what the midpoint does after\naggressive flow\nPost-trade impact measures signed midpoint change over a specified horizon. It captures price\nresponse but is not automatically a causal estimate of the trade's effect.",
+    "method": "Impact_bps(h)=side*(Mid_(t+h)-Mid_t)/Mid_t*10,000 after a fixed horizon h.\nPost-trade mid impact; horizon h versioned, e.g. 60 seconds for one report.",
+    "interpretation": "Aggressive buying visibly moved the quote, but much of the move did not persist. Persistence\nadds information beyond volume.",
+    "dependency": "Venue microstructure"
+  },
+  {
+    "id": 87,
+    "name": "Amihud Illiquidity",
+    "page": 103,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Estimate price movement per dollar\ntraded\nAmihud illiquidity averages absolute daily return divided by dollar volume. It is a coarse proxy\nfor price responsiveness to activity and should be compared only with consistent units.",
+    "method": "ILLIQ = (1/D)*sum_d |R_d| / DollarVolume_d.\nAmihud daily illiquidity; report units or multiply by a documented scale factor for readability.",
+    "interpretation": "A high ratio flags a market where modest flow can accompany large movement. It does not\nidentify the initiator or prove manipulation.",
+    "dependency": "Venue microstructure"
+  },
+  {
+    "id": 88,
+    "name": "Kyle Lambda",
+    "page": 104,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Estimate how signed flow translates into\nprice response\nAn empirical Kyle-style slope relates midpoint changes to signed aggressive flow. The\nestimated units depend on whether price changes are dollars, returns or basis points.",
+    "method": "ΔMid_t = α + λ*SignedFlow_t + e_t; KyleLambda=λ_hat.\nEmpirical Kyle-style price-impact regression using signed aggressive dollar flow and midpoint change.",
+    "interpretation": "Large buy flow with weak response can suggest absorption. It may also reflect arbitrage supply\nor a changed liquidity state.",
+    "dependency": "Venue microstructure"
+  },
+  {
+    "id": 89,
+    "name": "Order Book Imbalance",
+    "page": 105,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Test whether the displayed book is\none-sided\nOrder-book imbalance compares bid and ask depth inside the same price band. It is a\nnormalized view of displayed intent, which can change faster than a strategy can respond.",
+    "method": "OBI = (BidDepth-AskDepth)/(BidDepth+AskDepth).\nSymmetric depth band and venue fixed before calculation.",
+    "interpretation": "The visible book is bid-heavy at that instant. Durability, fills and replenishment determine\nwhether the support is economically meaningful.",
+    "dependency": "Venue microstructure"
+  },
+  {
+    "id": 90,
+    "name": "Trade Imbalance",
+    "page": 106,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Identify which side initiates execution\nTrade imbalance compares buyer- and seller-initiated notional. It describes aggressor\npressure; every execution still has a counterparty on the passive side.",
+    "method": "TradeImbalance = (AggBuyNotional-AggSellNotional)/(AggBuyNotional+AggSellNotional).\nAggressor side from exchange flags or Lee-Ready-style inference when flags unavailable.",
+    "interpretation": "Buyers are more aggressive in the observed sample. Strong passive supply can absorb that\npressure without a sustained rise.",
+    "dependency": "Venue microstructure"
+  },
+  {
+    "id": 91,
+    "name": "Cumulative Volume Delta",
+    "page": 107,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Follow cumulative aggressive demand\nthrough the episode\nCVD accumulates buyer-initiated volume minus seller-initiated volume from a declared reset.\nIts level depends on the starting point and its units must remain consistent.",
+    "method": "CVD_t = CVD_(t-1) + AggBuyVolume_t - AggSellVolume_t.\nCumulative aggressor-volume delta; reset convention and units are explicit.",
+    "interpretation": "A green CVD line supports net aggressive buying on the covered venues. It does not represent\nall investors' net holdings or guarantee continuation.",
+    "dependency": "Venue microstructure"
+  },
+  {
+    "id": 92,
+    "name": "VWAP",
+    "page": 108,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Use an execution-weighted reference\nprice\nVWAP averages trade prices weighted by quantity. It is a benchmark for activity over a defined\ninterval, not an intrinsic value or automatic support level.",
+    "method": "VWAP = sum_j P_j Q_j / sum_j Q_j.\nTrade-volume-weighted average execution price in interval.",
+    "interpretation": "Trading above VWAP shows location relative to executed volume in this interval. Thin late\nprints can create that appearance without broad participation.",
+    "dependency": "Venue microstructure"
+  },
+  {
+    "id": 93,
+    "name": "Liquidity Stress Composite",
+    "page": 109,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Combine liquidity warnings without\ndisguising judgment\nThe liquidity-stress composite averages standardized spread, slippage, impact and negative\ndepth. It is an explicit house diagnostic, not a calibrated probability of a trap.",
+    "method": "LiquidityStress = [z(Spread)+z(Slippage)+z(Impact)-z(Depth)]/4.\nHouse equal-weight standardized composite; each z-score is trailing, venue-consistent and winsorization policy versioned.",
+    "interpretation": "The market may advertise a tradable breakout while execution conditions deteriorate. The\ncomposite identifies the need for a size and data-quality review.",
+    "dependency": "Venue microstructure"
+  },
+  {
+    "id": 94,
+    "name": "Open Interest",
+    "page": 111,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Measure outstanding contracts without\ninventing a direction\nOpen interest counts outstanding derivative contracts, normally once per matched long-short\npair. USD conversion must follow each contract's multiplier and settlement design.",
+    "method": "Linear OI_USD = open contracts x base-units per contract x mark USD.\nInverse fixed-USD contracts: OI_USD = open contracts x USD face value.\nCount matched contracts once. Contract specification governs conversion; keep native exposure before summing normalized\ninstruments.",
+    "interpretation": "Large OI shows outstanding exposure and potential forced-flow capacity. It does not identify\nthe net directional conviction of the whole market.",
+    "dependency": "Derivatives and options"
+  },
+  {
+    "id": 95,
+    "name": "OI Change",
+    "page": 112,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Separate new positioning from\nmark-price inflation\nOI change measures the proportional change in outstanding exposure. In USD terms it\ncombines changes in contract count with changes in price, so native units are essential.",
+    "method": "ΔOI% = OI_t/OI_(t-1)-1.\nPercent change in normalized OI.",
+    "interpretation": "Some apparent leverage growth is price appreciation. Remaining contract growth still matters,\nbut its direction requires other evidence.",
+    "dependency": "Derivatives and options"
+  },
+  {
+    "id": 96,
+    "name": "OI to Market Cap",
+    "page": 113,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Scale derivative exposure against the\ncirculating market\nOI-to-market-cap places derivatives exposure in relation to circulating token value. It is a\nrough pressure indicator, not a measurement of total leverage or available collateral.",
+    "method": "OI_to_MCap = AggregateOI_USD / CirculatingMarketCap_USD.\nSame-timestamp aggregate derivative OI divided by circulating market cap.",
+    "interpretation": "The ratio makes exposure comparable in scale, while liquidation sensitivity still depends on\nleverage distribution and liquidity.",
+    "dependency": "Derivatives and options"
+  },
+  {
+    "id": 97,
+    "name": "Funding Rate",
+    "page": 114,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Read the periodic price of leveraged\nexposure\nFunding transfers value between perpetual longs and shorts under venue-specific rules.\nPositive funding commonly means longs pay shorts; the realized payment differs from an\nindicative rate that can still change.",
+    "method": "F_base = [P + clamp(I-P, -0.05%, +0.05%)] x N/8.\nF_final = clamp(F_base, contract floor, contract cap).\nBinance-style rule updated September 2025: P is weighted average premium, I the 8-hour interest component, N interval\nhours. Prefer realized published rates; contract exceptions apply.",
+    "interpretation": "Positive funding supports a crowding hypothesis but can persist alongside strong spot demand.\nIt does not time a reversal.",
+    "dependency": "Derivatives and options"
+  },
+  {
+    "id": 98,
+    "name": "Annualized Funding",
+    "page": 115,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Translate recurring funding into a stated\ncarry convention\nCompounded annualization illustrates the scale of a periodic rate if it repeated and could be\nreinvested. Actual funding cash flows generally follow changing rates and changing position\nnotionals.",
+    "method": "Funding_ann = (1+f_interval)^(24*365/h) - 1.\nCompounded annualization for interval h hours; also report raw interval rate because annualized values explode during stress.",
+    "interpretation": "The annualized figure describes the current rate's scale. It does not establish a locked return or\na forecast of year-long funding.",
+    "dependency": "Derivatives and options"
+  },
+  {
+    "id": 99,
+    "name": "Futures Basis",
+    "page": 116,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Compare a dated future with its spot\nanchor\nFutures basis is the premium or discount of a dated future relative to matched spot or index. It\nincludes financing, positioning and frictions rather than a pure forecast of future spot price.",
+    "method": "Basis = F/S - 1.\nDated futures price F relative to contemporaneous spot/index S.",
+    "interpretation": "A futures premium can look bullish but may mainly compensate financing and balance-sheet\nconstraints. The spot purchase and futures hedge are separate execution problems.",
+    "dependency": "Derivatives and options"
+  },
+  {
+    "id": 100,
+    "name": "Annualized Basis",
+    "page": 117,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Normalize basis across different expiries\nAnnualized basis converts a dated premium into a common time scale. The compounded\nconvention used here differs from simple annualization, especially for large premiums or short\nmaturities.",
+    "method": "Basis_ann = (F/S)^(365/d) - 1, d=calendar days to expiry.\nCompounded calendar-day annualization.",
+    "interpretation": "The annualized premium permits tenor comparison. It is not a free yield and can fluctuate\nbefore convergence.",
+    "dependency": "Derivatives and options"
+  },
+  {
+    "id": 101,
+    "name": "Liquidation Volume",
+    "page": 118,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Separate forced liquidation from\nvoluntary conviction\nLiquidation volume measures exchange-reported forced executions. Long liquidations\ngenerally create selling pressure; short liquidations create buying pressure, subject to venue\nmechanics and feed coverage.",
+    "method": "LiquidationVolume_T = sum_j |PositionNotional_j| for exchange-reported forced\nliquidation executions during T.\nForced-execution notional; keep long-liquidation and short-liquidation sides separate.",
+    "interpretation": "The rise may contain a large forced-covering component. It could continue, but the liquidation\nburst alone does not prove durable demand.",
+    "dependency": "Derivatives and options"
+  },
+  {
+    "id": 102,
+    "name": "Liquidations to OI",
+    "page": 119,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Put forced turnover in relation to open\nexposure\nLiquidation-to-OI scales forced executed notional by average outstanding exposure over the\nsame interval. It measures stress intensity under the chosen coverage, not the fraction of\ninvestors liquidated.",
+    "method": "Liq_to_OI = LiquidationVolume_T / AverageOI_T.\nLiquidation notional divided by average normalized OI over same interval.",
+    "interpretation": "A severe red candle may reflect positions being closed under compulsion. That is different from\na measured change in long-term investor beliefs.",
+    "dependency": "Derivatives and options"
+  },
+  {
+    "id": 103,
+    "name": "Long Short Ratio",
+    "page": 120,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Do not confuse account counts with\nexposure size\nAn account long/short ratio counts classified accounts. It does not reveal their sizes and differs\nfrom a position-notional ratio or a market-wide net exposure measure.",
+    "method": "AccountLongShortRatio = NumberOfLongAccounts / NumberOfShortAccounts.\nBinance account-ratio convention; do not confuse with position-notional ratio.",
+    "interpretation": "More accounts lean long, but larger accounts may lean short in the selected sample. Neither\nstatistic describes all market participants.",
+    "dependency": "Derivatives and options"
+  },
+  {
+    "id": 104,
+    "name": "Implied Volatility",
+    "page": 121,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Infer the volatility embedded in option\nprices\nImplied volatility is the model input that reproduces an observed option premium. It is a price\nof option uncertainty and protection, not a direct physical forecast.",
+    "method": "C = S exp(-qT) Phi(d1) - K exp(-rT) Phi(d2).\nd1=[ln(S/K)+(r-q+σ^2/2)T]/(σ sqrt(T)); d2=d1-σ sqrt(T).\nIV is the nonnegative σ solving C_model(σ)=C_market.\nDollar-settled European Black-Scholes-Merton convention for the case. Production uses the instrument's actual forward,\ndiscounting and premium/settlement units.",
+    "interpretation": "The premium embeds substantial uncertainty. It can include insurance demand, supply\nconstraints and risk premium rather than a forecast of a 70% realized move.",
+    "dependency": "Derivatives and options"
+  },
+  {
+    "id": 105,
+    "name": "IV Minus Realized Vol",
+    "page": 122,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Compare the price of uncertainty with its\nrecent realization\nIV minus realized volatility contrasts option-implied and historical realized annualized\nvolatility. The horizons are different by nature, so the spread is a diagnostic rather than a\nguaranteed premium.",
+    "method": "IVminusRV = ATM_IV_ann - RealizedVol_ann.\nBoth expressed in annualized volatility points with matched horizon as closely as possible.",
+    "interpretation": "The options market prices more uncertainty than the recent path delivered. Future event risk\nand risk premium are competing explanations.",
+    "dependency": "Derivatives and options"
+  },
+  {
+    "id": 106,
+    "name": "Volatility Skew",
+    "page": 123,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Read which side of the option surface is\nexpensive\nThe 25-delta risk reversal compares call and put implied volatility at matched expiry and delta\nconvention. This book uses call minus put, so a negative value indicates richer downside\nvolatility.",
+    "method": "RR25 = IV_25delta_call - IV_25delta_put.\n25-delta risk-reversal sign convention used here. Some desks quote put-minus-call; sign conflict is explicitly flagged.",
+    "interpretation": "A negative skew documents the relative price of downside optionality. Positioning, structured\nproducts and supply constraints can shape it.",
+    "dependency": "Derivatives and options"
+  },
+  {
+    "id": 107,
+    "name": "Volatility Term Structure",
+    "page": 124,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Locate where uncertainty sits along the\nexpiry curve\nVolatility term structure compares implied volatility across maturities. Far-minus-near slope\nhighlights whether near-term events or longer-run uncertainty dominate the quoted surface.",
+    "method": "TermSlope = ATM_IV(T_far) - ATM_IV(T_near), in volatility points.\nFar-minus-near convention; maturities are specified, no silent interpolation.",
+    "interpretation": "An inverted volatility curve often points to concentrated near-term uncertainty. It is not itself a\nbearish price forecast.",
+    "dependency": "Derivatives and options"
+  },
+  {
+    "id": 108,
+    "name": "Put Call Ratio",
+    "page": 125,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Interpret put and call activity without\nguessing its direction\nPut/call ratio compares option volume or open interest under a declared convention. Volume\ndoes not reveal whether options were bought or sold, nor whether trades form spreads.",
+    "method": "PutCallRatio_volume = PutOptionVolume / CallOptionVolume.\nVolume-based PCR; open-interest PCR is a different metric and must be labeled separately.",
+    "interpretation": "Put activity dominates the count. The directional inference remains unresolved until trade\nside, size, tenor and multi-leg structure are examined.",
+    "dependency": "Derivatives and options"
+  },
+  {
+    "id": 109,
+    "name": "Exchange Inflow",
+    "page": 127,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Treat an exchange deposit as potential\nsupply\nExchange inflow counts transfers entering a provider's labeled exchange boundary. It observes\nsettlement into an address cluster; it does not establish a sale on the exchange.",
+    "method": "Inflow_T = sum(value of transfers crossing from outside into labeled exchange\nentities).\nCryptoQuant exchange-flow convention selected for operational intake; use one frozen exchange universe and\nprovider-adjusted external transfers. Labels are estimates.",
+    "interpretation": "A large deposit can precede selling, collateral posting, custody changes or market-maker\ninventory transfer. Only the transfer is confirmed.",
+    "dependency": "On-chain / protocol / supply"
+  },
+  {
+    "id": 110,
+    "name": "Exchange Outflow",
+    "page": 128,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Interpret withdrawals without declaring\naccumulation\nExchange outflow measures transfers leaving a defined labeled exchange boundary. It can\nindicate custody migration, collateral movement or other operational activity as well as\ninvestment-related withdrawal.",
+    "method": "Outflow_T = sum(value of transfers crossing from labeled exchange entities to\noutside).\nCryptoQuant-style exchange boundary consistent with inflow; exclude internal transfers using the selected provider\nconvention and label version.",
+    "interpretation": "The withdrawal reduces the observed exchange balance. It does not prove a new spot purchase\nor an unhedged bullish position.",
+    "dependency": "On-chain / protocol / supply"
+  },
+  {
+    "id": 111,
+    "name": "Exchange Netflow",
+    "page": 129,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Net the exchange boundary while\npreserving both directions\nNetflow subtracts outflow from inflow, with positive values indicating net deposits in this book.\nGross flows still matter because offsetting large movements can disappear in the net.",
+    "method": "ExchangeNetflow = Inflow - Outflow.\nPositive means net flow into labeled exchanges in this manual.",
+    "interpretation": "Net deposits raise potential supply availability. Concentrated operational flows may explain\nthem without broad investor distribution.",
+    "dependency": "On-chain / protocol / supply"
+  },
+  {
+    "id": 112,
+    "name": "Exchange Supply",
+    "page": 130,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Measure the share held inside labeled\nexchanges\nExchange supply share compares labeled exchange balances with circulating supply. It is a\ncustody-location measure and depends on the completeness of the labeling universe.",
+    "method": "ExchangeSupplyShare = ExchangeEntityBalance / CirculatingSupply.\nBalance held by labeled exchange entities divided by circulating supply.",
+    "interpretation": "A declining ratio can appear bullish while simply reflecting circulating-supply growth. Balance\nchanges and classification changes must be separated.",
+    "dependency": "On-chain / protocol / supply"
+  },
+  {
+    "id": 113,
+    "name": "Realized Capitalization",
+    "page": 131,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Reconstruct the cost basis encoded in\ncoin movement\nBTC realized capitalization values each current UTXO at the reference USD price when it was\ncreated. It is a movement-based accounting proxy, not a record of actual purchase prices.",
+    "method": "BTC realized cap = sum_(u in current UTXOs) q_u x USD_price_at_creation(u).\nCoin Metrics CapRealUSD chosen for the realized-cap family; BTC UTXO method. Account-based assets need their own\ndocumented inventory accounting.",
+    "interpretation": "A gap between current and movement-based values suggests aggregate embedded gains in the\naccounting model. Self-transfers and lost coins complicate the economic interpretation.",
+    "dependency": "On-chain / protocol / supply"
+  },
+  {
+    "id": 114,
+    "name": "MVRV",
+    "page": 132,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Compare current valuation with\nmovement-based cost\nMVRV divides market capitalization by realized capitalization using compatible series. It\nsummarizes valuation relative to an on-chain cost-basis proxy without supplying a universal\nmarket-top threshold.",
+    "method": "MVRV = CapMrktCurUSD / CapRealUSD.\nCoin Metrics matched market/realized-cap convention selected for reproducibility. Glassnode offers related variants that must\nnot be silently mixed.",
+    "interpretation": "BTC sits above its aggregate movement-based cost proxy. Cross-asset ratios require compatible\nmethods and cannot be treated like directly comparable earnings multiples.",
+    "dependency": "On-chain / protocol / supply"
+  },
+  {
+    "id": 115,
+    "name": "MVRV Z Score",
+    "page": 133,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Standardize the valuation gap with an\nexplicit history\nMVRV Z-score divides the market-minus-realized-cap gap by historical market-cap dispersion.\nIt is not the ordinary z-score of the MVRV ratio itself.",
+    "method": "MVRV_Z = (MarketCap_t - RealizedCap_t) / SD(MarketCap_start,...,MarketCap_t).\nGlassnode published expanding-history metric is the replication target. A house reconstruction uses population SD (n\ndenominator) and stores the first available date; it is labeled separately.",
+    "interpretation": "The valuation gap is large relative to a particular historical scale. Starting the history at a\ndifferent date changes that scale and the resulting score.",
+    "dependency": "On-chain / protocol / supply"
+  },
+  {
+    "id": 116,
+    "name": "SOPR",
+    "page": 134,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Read spent-coin profitability without\nassuming every spend is a sale\nSOPR compares USD value at spending with USD value at creation for the same spent outputs.\nThe ratio-of-sums convention weights by economic size rather than treating all outputs\nequally.",
+    "method": "SOPR = sum RealizedValueUSD(spent outputs) / sum CreationValueUSD(those spent\noutputs).\nGlassnode spent-output profit ratio aggregation.",
+    "interpretation": "The spent set carries gains under the movement-based accounting model. Custody reshuffles\ncan realize the metric without a market sale.",
+    "dependency": "On-chain / protocol / supply"
+  },
+  {
+    "id": 117,
+    "name": "NUPL",
+    "page": 135,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Estimate aggregate unrealized gains\nunder the chosen cost proxy\nNUPL scales the market-minus-realized-cap gap by market capitalization. It summarizes the\nfraction of current value above or below the on-chain cost proxy.",
+    "method": "NUPL = (MarketCap - RealizedCap) / MarketCap.\nGlassnode net-unrealized-profit/loss identity.",
+    "interpretation": "The network's accounting proxy indicates net unrealized gains. Cohort, age and ownership\ndistribution are needed to investigate supply behavior.",
+    "dependency": "On-chain / protocol / supply"
+  },
+  {
+    "id": 118,
+    "name": "NVT",
+    "page": 136,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Compare network valuation with\neconomic transfer activity\nNVT divides market value by adjusted on-chain transfer value for a declared interval. It relates\nvaluation to settlement activity, not to protocol profit or exchange trading volume.",
+    "method": "NVT_daily = CapMrktCurUSD / TxTfrValAdjUSD_daily.\nHouse daily ratio using matched Coin Metrics series. This selects an adjusted-transfer convention; alternative NVT smoothers\nand entity filters are distinct.",
+    "interpretation": "High NVT can mean high valuation, low settlement activity or a different usage mix. Daily\ntransfer spikes can temporarily compress it.",
+    "dependency": "On-chain / protocol / supply"
+  },
+  {
+    "id": 119,
+    "name": "Adjusted Transfer Value",
+    "page": 137,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Remove accounting churn before\ninterpreting transfer value\nAdjusted transfer value attempts to isolate economically meaningful movement from raw\nledger transfers. This book selects Coin Metrics' published adjusted series rather than claiming\nto reproduce opaque entity heuristics.",
+    "method": "Production method: read Coin Metrics TxTfrValAdjUSD at asset/date/frequency/version.\nConceptually: sum of transfers retained by the asset-specific CM adjustment method,\nvalued in USD.\nThe exact operational method is the named provider series. The worked filter is illustrative, not a claim to reproduce CM's\nchain-specific heuristics.",
+    "interpretation": "A busy chain may contain operational recycling. Adjustments improve interpretation but\nremain methodology-dependent and can be revised.",
+    "dependency": "On-chain / protocol / supply"
+  },
+  {
+    "id": 120,
+    "name": "Active Addresses or Active Entities",
+    "page": 138,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Count active addresses without counting\nthem as people\nActive-address counts deduplicate addresses participating under a provider's eligibility rules.\nEntity counts add a clustering model; neither measure directly identifies unique human users.",
+    "method": "Active addresses = cardinality(union of eligible senders and receivers in T).\nActive entities = cardinality(provider clusters represented in that set).\nCoin Metrics AdrActCnt is the selected address series; entity counts are explicitly separate, provider-defined estimates. Asset\ninclusion rules are retained.",
+    "interpretation": "Activity shows use of addresses. Bots, contracts and one actor using several wallets can\nproduce apparent adoption.",
+    "dependency": "On-chain / protocol / supply"
+  },
+  {
+    "id": 121,
+    "name": "Transaction Count",
+    "page": 139,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Separate transaction throughput from\neconomic adoption\nTransaction count measures confirmed ledger transactions under declared inclusion rules. It\ncounts ledger objects, not users, token transfers or economically independent decisions.",
+    "method": "TransactionCount_T = number of eligible confirmed ledger transactions in T.\nCoin Metrics TxCnt selected with asset-specific inclusion rules. The simplified calculation demonstrates filtering only, not a\nuniversal exclusion list.",
+    "interpretation": "More transactions can indicate economic demand, automated farming, batching changes or\nprotocol mechanics. Fees and user persistence help distinguish them.",
+    "dependency": "On-chain / protocol / supply"
+  },
+  {
+    "id": 122,
+    "name": "Velocity",
+    "page": 140,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Express how rapidly network value\ncirculates\nVelocity is adjusted transfer value divided by market value over a stated interval. It is the\nreciprocal of NVT only when the exact same inputs and horizon are used.",
+    "method": "Velocity = AdjustedTransferValueUSD / MarketCap = 1/NVT under matching\nnumerator/denominator convention.\nGlassnode identity when NVT uses the same adjusted transfer value.",
+    "interpretation": "Higher movement relative to value may mean productive settlement or rapid recycling. It is not\nautomatically stronger investment demand.",
+    "dependency": "On-chain / protocol / supply"
+  },
+  {
+    "id": 123,
+    "name": "Whale Transfer Share",
+    "page": 141,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Locate concentration in large transfers\nWhale transfer share measures the fraction of eligible transfer value above a declared size\ncutoff. It classifies transaction size, not the identity, skill or intent of the actor.",
+    "method": "WhaleShare(c) = sum(V_j for V_j>=c and eligible j) / sum(V_j for all eligible j).\nHouse transfer-size share. Identical economic-transfer filters and valuation timestamps apply to numerator and denominator;\nc is a declared bucket.",
+    "interpretation": "Activity is concentrated in large transfers. Operational contracts and custodians can dominate\nthis measure without a directional view.",
+    "dependency": "On-chain / protocol / supply"
+  },
+  {
+    "id": 124,
+    "name": "Holder Concentration",
+    "page": 142,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Measure ownership concentration while\nrespecting custody\nHolder HHI sums squared balance shares over a declared holder universe. Excluding\nexchanges or contracts changes the economic question and requires renormalizing the\nremaining balances.",
+    "method": "HolderHHI = sum_i s_i^2, s_i=balance_i/sum_j balance_j after an explicitly documented\nexclusion universe.\nHHI concentration on labeled non-contract/non-exchange holders when exclusions are enabled; raw- holder version also\nstored.",
+    "interpretation": "Large addresses do not map cleanly to beneficial owners. Custodians aggregate many people;\none actor may split holdings across wallets.",
+    "dependency": "On-chain / protocol / supply"
+  },
+  {
+    "id": 125,
+    "name": "Token Unlock Pressure",
+    "page": 143,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Measure scheduled supply without\nassuming immediate selling\nUnlock pressure compares scheduled newly transferable token value with current circulating\ncapitalization. It measures potential supply availability over a fixed horizon, not guaranteed\nmarket sales.",
+    "method": "UnlockPressure_H = ScheduledUnlockUSD_(t,t+H] / CirculatingMarketCapUSD_t.\nDefiLlama-style scheduled unlock data; H=30 calendar days in the standard report and is metadata, not a buy/sell threshold.",
+    "interpretation": "An unlock can expand transferable supply. Recipients may hold, hedge, stake or transfer, so\nselling pressure remains conditional.",
+    "dependency": "On-chain / protocol / supply"
+  },
+  {
+    "id": 126,
+    "name": "Fee and Revenue Trend",
+    "page": 144,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Separate user payments from value\nretained by the protocol\nFee and revenue trends compare like-for-like periods and accounting scopes. Under the\nselected DefiLlama definition, revenue excludes supply-side payouts; protocol and\ntoken-holder allocations require separate attention.",
+    "method": "Revenue = Fees - SupplySideRevenue.\nGrowth_30d = sum(last 30 complete days) / sum(previous 30 complete days) - 1.\nDefiLlama selected accounting convention; revenue excludes suppliers. Track protocol retention and token-holder allocations\nseparately; zero/negative prior revenue requires a non-ratio report.",
+    "interpretation": "Activity may be improving while token-holder value capture remains unchanged. Fees,\nrevenue, earnings and distributions answer different questions.",
+    "dependency": "On-chain / protocol / supply"
+  },
+  {
+    "id": 127,
+    "name": "TVL and TVL Change",
+    "page": 145,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Separate deposited capital from the price\nof collateral\nTVL values the assets included by a protocol's accounting methodology. Changes combine\ntoken-balance movements and prices, so TVL growth is not the same as net deposits.",
+    "method": "TVL_t = sum_(eligible assets j) q_(j,t) P_(j,t).\nTVL growth = TVL_t/TVL_(t-k)-1.\nDefiLlama inclusion and double-counting policy selected. Store token quantities, prices and category toggles; TVL growth is not\nnet capital inflow.",
+    "interpretation": "The protocol looks larger in dollars, yet no additional assets were deposited. Token-balance\nand price contributions must be disentangled.",
+    "dependency": "On-chain / protocol / supply"
+  },
+  {
+    "id": 128,
+    "name": "Stablecoin Liquidity Context",
+    "page": 146,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Track stablecoin supply without\nassuming deployable demand\nStablecoin liquidity context measures changes in a declared supply universe. Supply growth is\npotential liquidity, not a direct observation that capital will buy BTC or an altcoin.",
+    "method": "StablecoinLiquidityGrowth = StablecoinSupplyUSD_t / StablecoinSupplyUSD_(t-k) - 1 for\nthe declared chain/universe.\nDefiLlama stablecoin circulating-supply context; chain attribution and bridged assets follow provider definitions.",
+    "interpretation": "More settlement liquidity can support activity, but balances may remain idle, fund collateral or\nmove through arbitrage.",
+    "dependency": "On-chain / protocol / supply"
+  },
+  {
+    "id": 129,
+    "name": "BTC Dominance",
+    "page": 148,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Read BTC dominance as a ratio with a\nmoving denominator\nBTC dominance is Bitcoin circulating capitalization divided by total eligible crypto\ncapitalization. It reflects relative valuation and universe construction, not a direct\nmeasurement of capital flows.",
+    "method": "BTCDominance = BTC_CirculatingMarketCap / TotalCryptoCirculatingMarketCap * 100.\nConsistent market-cap provider and universe; stablecoins/wrapped duplicates inclusion policy stored.",
+    "interpretation": "Alts grew faster in aggregate. The ratio cannot distinguish new issuance, price repricing and\nactual portfolio rotation.",
+    "dependency": "Defined market universe"
+  },
+  {
+    "id": 130,
+    "name": "Advance Decline Breadth",
+    "page": 149,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Check whether the rally reaches most\nassets\nAdvance-decline breadth compares the number of rising and falling assets. Equal-count\nbreadth counterbalances a capitalization-weighted headline dominated by a few large tokens.",
+    "method": "AD_Breadth = (N_advance - N_decline)/(N_advance+N_decline); unchanged assets excluded\nfrom denominator.\nEqual-count breadth on a survivorship-controlled universe.",
+    "interpretation": "Positive breadth supports wider participation. It is stronger evidence when the rising assets are\nliquid and the universe was fixed beforehand.",
+    "dependency": "Defined market universe"
+  },
+  {
+    "id": 131,
+    "name": "Percent Above Moving Average",
+    "page": 150,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Measure how widely the trend is\nestablished\nPercent above a moving average counts assets above a declared trailing price baseline. It\nmeasures breadth of trend state, not the probability that the trend will continue.",
+    "method": "PctAboveMA = 100 * count_i(P_i > MA_i) / N_valid.\nEqual-count breadth; moving-average horizon is a parameter stored in metadata.",
+    "interpretation": "Many valid assets show an established upward state. Missingness can still bias the apparent\nstrength.",
+    "dependency": "Defined market universe"
+  },
+  {
+    "id": 132,
+    "name": "Cross Sectional Dispersion",
+    "page": 151,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Measure how unevenly the market is\nmoving\nCross-sectional dispersion is the standard deviation of same-period returns across assets. It\ndescribes differences within the market and is distinct from volatility through time.",
+    "method": "CrossSectionalDispersion_t = sqrt[sum_i (R_i,t - R_bar_t)^2/(N-1)].\nEqual-weight sample SD of same-horizon asset returns.",
+    "interpretation": "A green market headline does not imply a uniform opportunity set. High dispersion makes\nasset selection and residual explanations more important.",
+    "dependency": "Defined market universe"
+  },
+  {
+    "id": 133,
+    "name": "Sector Relative Strength",
+    "page": 152,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Compare a sector with BTC on a relative\nwealth basis\nSector relative strength here is log sector return minus log BTC return. It measures relative\nperformance without dividing by a return that may be zero or negative.",
+    "method": "SectorRelativeReturn = ln(1+R_sector) - ln(1+R_BTC).\nLog relative performance avoids ratio pathologies when returns are negative.",
+    "interpretation": "The sector gained relative wealth against BTC. Exposure, composition changes and genuine\nsector news can all contribute.",
+    "dependency": "Defined market universe"
+  },
+  {
+    "id": 134,
+    "name": "Cross Sectional Momentum Rank",
+    "page": 153,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Rank momentum while retaining the\nabsolute return\nMomentum percentile places an asset's trailing total return within a declared universe. A high\nrank is relative strength; it can coexist with a negative absolute return.",
+    "method": "Momentum_i = product_(s=t-W+1..t)(1+R_(i,s))-1.\nPercentile_i = 100 x (ascending average rank_i - 1)/(N-1).\nHouse equal-count percentile; average ranks for ties, predeclared lookback and point-in-time eligible universe. N<2 yields\nunavailable.",
+    "interpretation": "Relative leadership does not prove buying pressure sufficient to overcome the market. The BTC\nregime remains relevant to the absolute outcome.",
+    "dependency": "Defined market universe"
+  },
+  {
+    "id": 135,
+    "name": "Market Concentration HHI",
+    "page": 154,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Measure how much the market depends\non a few names\nMarket HHI sums squared capitalization shares and scales the result to 0-10,000. It describes\nconcentration of valuation, not directly correlation or concentration of beneficial ownership.",
+    "method": "HHI = 10,000 * sum_i s_i^2, s_i=market_cap_i/sum_j market_cap_j.\nDOJ-style 0-10,000 scaling applied to crypto market-cap shares.",
+    "interpretation": "Many listed tokens do not guarantee a balanced capitalization index. A few names can\ndetermine most of its behavior.",
+    "dependency": "Defined market universe"
+  },
+  {
+    "id": 136,
+    "name": "Correlation Dispersion",
+    "page": 155,
+    "room": "BTC / ALTCOINS / EVIDENCE",
+    "description": "Find whether BTC relationships are\nuniformly tight or uneven\nCorrelation dispersion is the sample standard deviation of asset-to-BTC correlations across a\nfixed universe. It reveals heterogeneity in relationships, not the level of diversification by itself.",
+    "method": "CorrDispersion = SD({ρ_i,BTC}) across assets i in the universe, using the same\nrolling window.\nHouse sample-SD convention for benchmark correlations; also publish median/IQR.",
+    "interpretation": "The market's relationships are uneven. Low dispersion could mean everything is tightly\ncoupled or everything is weakly coupled, so median correlation is essential context.",
+    "dependency": "Defined market universe"
+  }
+]
