@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+.pytest_cache/
+.env
+.env.*
+!.env.example
+tmp/
+runtime/
+output/live-*.json
+*.log
+/dist/
