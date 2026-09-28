@@ -1,0 +1,47 @@
+services:
+  - type: web
+    name: atlas-136
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python bot.py
+    healthCheckPath: /healthz
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.14
+      - key: PYTHONUNBUFFERED
+        value: '1'
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_CHAT_ID
+        sync: false
+      - key: DASHBOARD_TOKEN
+        generateValue: true
+      - key: COINS
+        value: BTC,ETH,SOL,XRP,ADA,DOGE,LINK,AVAX,DOT,LTC
+      - key: SCAN_SECONDS
+        value: '300'
+      - key: LOOKBACK_DAYS
+        value: '180'
+      - key: ENABLE_WEBSOCKET
+        value: 'true'
+      - key: ENABLE_COINMETRICS
+        value: 'true'
+      - key: ENABLE_DEFILLAMA
+        value: 'true'
+      - key: ENABLE_OKX
+        value: 'false'
+      - key: DEMO_MODE
+        value: 'false'
+      - key: ENABLE_MARKET_UNIVERSE
+        value: 'true'
+      - key: MARKET_EXCHANGES
+        value: binance,bitget,bybit,okx
+      - key: MARKET_TYPES
+        value: spot,perpetual
+      - key: MARKET_DETAIL_BATCH
+        value: '10'
+      - key: ENABLE_CMC
+        value: 'true'
+      - key: VENDOR_REFRESH_SECONDS
+        value: '3600'
