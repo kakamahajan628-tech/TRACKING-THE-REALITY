@@ -23,25 +23,7 @@ services:
         value: '300'
       - key: LOOKBACK_DAYS
         value: '180'
-      - key: ENABLE_WEBSOCKET
-        value: 'true'
       - key: ENABLE_COINMETRICS
         value: 'true'
-      - key: ENABLE_DEFILLAMA
-        value: 'true'
-      - key: ENABLE_OKX
-        value: 'false'
       - key: DEMO_MODE
         value: 'false'
-      - key: ENABLE_MARKET_UNIVERSE
-        value: 'true'
-      - key: MARKET_EXCHANGES
-        value: binance,bitget,bybit,okx
-      - key: MARKET_TYPES
-        value: spot,perpetual
-      - key: MARKET_DETAIL_BATCH
-        value: '10'
-      - key: ENABLE_CMC
-        value: 'true'
-      - key: VENDOR_REFRESH_SECONDS
-        value: '3600'
