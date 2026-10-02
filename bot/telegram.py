@@ -6,6 +6,7 @@ from .reports import summary, report_bundle
 from . import telegram_markets, telegram_controls as controls
 from .control import ControlError
 from . import telegram_technical
+from .tracking import ist, MAX_COINS
 
 
 class Telegram:
@@ -23,7 +24,7 @@ class Telegram:
         self.pending_inputs={}
 
     def navigation(self):
-        markup=telegram_markets.menu()
+        markup={'inline_keyboard':[]}
         if self.controller:markup['inline_keyboard']=controls.home_buttons(self.scanner.settings)+markup['inline_keyboard']
         return markup
 
@@ -77,10 +78,10 @@ class Telegram:
             # Mark attempted to avoid duplicate reports after ambiguous transport errors.
             if not force:self.last_sent=report['scan_id']
             if not await self.text(summary(report),self.navigation()):return False
-            if not force and (not report.get('send_zip',True) or not self.eligible(report)):return True
+            if not force and (not report.get('send_zip',False) or not self.eligible(report)):return True
             payload=await asyncio.to_thread(report_bundle,report)
             if not force and not self.eligible(report):return False
-            result=await self.request('sendDocument',{'chat_id':self.chat_id,'caption':'Scan: all-exchange spot/perpetual snapshots + 136 records per research-watchlist coin. ZIP includes HTML, CSV and JSON. Missing and stale data stay labelled.'},
+            result=await self.request('sendDocument',{'chat_id':self.chat_id,'caption':'Selected USDT tracking report. 5m/1h/4h/1d views; beta daily only. Native funding/OI retain their actual frequency. Missing/stale values stay labelled.'},
                                       {'document':(f"atlas-136-{report['scan_id']}.zip",payload,'application/zip')})
             return result is not None
 
@@ -95,7 +96,7 @@ class Telegram:
         # Skip pre-start commands; never replay queued historical commands after a redeploy.
         pending=await self.request('getUpdates',{'offset':-1,'timeout':0})
         if pending:self.offset=max(u['update_id'] for u in pending)+1
-        commands=[('controls','Coins, timer and pause/resume'),('technical','RSI MFI OBV EMA MACD'),('access','Provider connection health'),('metrics','Browse all 136 metric IDs'),('report','Download complete report'),('markets','Browse exchange instruments'),('website','Open dashboard'),('status','Scanner and settings status'),('backup','Back up settings'),('help','Commands and guidance')]
+        commands=[('controls','Tracking list and scan loop'),('technical','10 studies: choose coin and timeframe'),('metrics','136 metric records by timeframe'),('route','Choose venue and spot or perp'),('report','Concise tracking report'),('export','Full HTML CSV JSON report'),('website','Open dashboard'),('access','Source connection health'),('backup','Save tracking settings'),('help','Commands')]
         await self.request('setMyCommands',{'commands':json.dumps([{'command':c,'description':d} for c,d in commands])})
         while True:
             updates=await self.request('getUpdates',{'offset':self.offset,'timeout':25,'allowed_updates':'["message","callback_query"]'})
@@ -121,7 +122,7 @@ class Telegram:
         self.require_owner(sender)
         if action not in ('add','replace','interval'):raise ControlError('Unknown input.')
         revision=self.controller.state.revision
-        question='Reply to this message with minutes (5–1440).' if action=='interval' else 'Reply to this message with coin symbols, e.g. SOL,DOGE. Maximum 20 research coins. /cancel cancels.'
+        question='Reply to this message with minutes (5–1440).' if action=='interval' else f'Reply with exact base symbols, e.g. SOL,DOGE. Maximum {MAX_COINS} tracked coins. /cancel cancels.'
         result=await self.request('sendMessage',{'chat_id':self.chat_id,'text':question,'reply_markup':json.dumps({'force_reply':True,'selective':False})})
         if result:self.pending_inputs[str(sender)]={'action':action,'revision':revision,'message_id':result['message_id'],'expires':time.monotonic()+300}
 
@@ -144,7 +145,7 @@ class Telegram:
                 await self.text(result,self.navigation());return
             parts=raw.split();cmd=parts[0].split('@')[0].lower();argument=' '.join(parts[1:])
             coins=self.controller.state.coins if self.controller else self.scanner.settings.coins
-            if cmd in ('/technical','/ta','/rsi','/mfi','/obv','/ema','/macd'):
+            if cmd in ('/technical','/ta','/rsi','/mfi','/obv','/ema','/macd','/atr','/bb','/adx','/funding','/oi'):
                 if not argument and cmd in ('/technical','/ta'):await self.text(*telegram_technical.choose(coins))
                 else:
                     symbol=parts[1].upper() if len(parts)>1 else coins[0]
@@ -152,22 +153,36 @@ class Telegram:
                     await self.text(*telegram_technical.page(report,self.scanner.settings,symbol,timeframe,None if cmd in ('/technical','/ta') else cmd[1:]))
                 return
             if cmd=='/access':await self.text(*telegram_technical.access(report));return
+            if cmd=='/route':
+                self.require_owner(sender)
+                if len(parts)<3:
+                    await self.text('Switch source: /route SOL bybit perp\nSpot: /route SOL okx spot\nAutomatic perp-first: /route SOL auto\nVenues: okx, bybit, bitget, gate, mexc, kucoin, bingx, htx, phemex, coinex.\nAn explicit venue/product is pinned; no silent fallback.');return
+                market=parts[3].lower() if len(parts)>3 else 'auto'
+                if market in ('perp','swap','futures'):market='perpetual'
+                await self.text(await self.controller.change('route',{'coin':parts[1].upper(),'exchange':parts[2].lower(),'market':market}),self.navigation());return
+            if cmd in ('/markets','/perps','/sources','/scope'):
+                await self.text('Whole-market scanning removed. Only your tracking list is measured. Use /route COIN exchange perp|spot to switch source, /technical for the selected contract and /website for Tracking sources.',self.navigation());return
+            if cmd=='/report':
+                await self.text(summary(report) if report else 'First scan is collecting. Use /status.',self.navigation());return
+            if cmd=='/export':
+                if report:await self.publish(report,force=True)
+                else:await self.text('First scan is collecting. Use /status.')
+                return
             if cmd in ('/start','/help'):
-                await self.text('NEW: /technical → choose coin → 5m / 1d\nShortcuts: /rsi SOL 5m · /mfi SOL 1d · /obv SOL 5m · /ema SOL 5m · /macd SOL 5m\n/access — connection health from the bot host')
-                await self.text('ATLAS 136\n/controls — coins, timer, pause/resume, scan now\n/metrics — browse 136 IDs with buttons\n/report — latest digest + complete ZIP\n/markets /perps — exchange listings\n/coin SOL — research digest\n/metric 114 SOL — metric and website link\n/website — dashboard\n/status — loop and data status\n\nOwner shortcuts:\n/add SOL,DOGE · /remove DOGE\n/interval 10 (minutes) · /window 180 (days)\n/pause · /resume · /scan\n/scope all or watchlist · /zip on or off\n/backup · /restore <backup> · /cancel\n\nButtons remember settings. Scans run automatically while the service is running. All 136 IDs remain visible; missing data is labelled. No trade orders are placed.',self.navigation())
+                await self.text('ATLAS TRACKING | USDT | IST\n/panel - coins, timer, pause/resume\n/add SOL,PEPE /remove DOGE\n/interval 5 /pause /resume /scan\n/route SOL bybit perp - pin source\n/route SOL auto - perp-first fallback spot\n\n/report - concise latest report\n/coin SOL - one coin\n/technical SOL 5m - 10 studies\nTimeframes: 5m, 1h, 4h, 1d\n/rsi /mfi /obv /ema /macd /atr /bb /adx /funding /oi\n/metrics SOL 1h - all136 IDs for that view\n/metric 3 SOL 1d - daily BTC beta\n/website /access /status\n/export - full report files (on demand)\n/backup /restore <backup> /zip off /cancel\n\n50 tracked coins. Daily BTC/ETH beta. Native funding/OI is separate from candle timeframes. Unavailable is not zero.',self.navigation())
             elif cmd in ('/controls','/coins','/panel') and self.controller:
                 await self.text(*controls.menu(self.controller,'coins' if cmd=='/coins' else 'home'))
             elif cmd=='/whoami':await self.text(f'Your Telegram user ID: {sender}\nConfigured chat: {self.chat_id}')
             elif cmd=='/status':
-                text=f"Scanner: {'collecting' if self.scanner.lock.locked() else 'idle'}\nLast report: {report['generated_at'] if report else 'none'}\nTelegram: {self.status}\nLast error: {self.scanner.last_error or 'none'}"
+                text=f"Scanner: {'collecting' if self.scanner.lock.locked() else 'idle'}\nLast report: {ist(report['generated_at']) if report else 'none'}\nTelegram: {self.status}\nLast error: {self.scanner.last_error or 'none'}"
                 if self.controller:text+='\n\n'+controls.menu(self.controller)[0]
                 await self.text(text,self.navigation())
             elif cmd=='/website':
                 url=controls.dashboard_url(self.scanner.settings)
                 await self.text('Open the dashboard below. Login: atlas; password: your DASHBOARD_TOKEN set on Render.' if url else 'Dashboard URL is not configured yet. Render supplies it automatically after deployment, or set PUBLIC_BASE_URL.',{'inline_keyboard':[[{'text':'Open dashboard','url':url}]]} if url else None)
-            elif cmd=='/metrics':await self.text(*(controls.metric_list(report,argument.upper()) if argument else controls.metric_coins(coins)))
+            elif cmd=='/metrics':await self.text(*(controls.metric_list(report,parts[1].upper(),timeframe=parts[2] if len(parts)>2 else '1d') if argument else controls.metric_coins(coins)))
             elif cmd=='/metric':
-                await self.text(*controls.metric_detail(report,self.scanner.settings,parts[2].upper() if len(parts)>2 else coins[0],int(parts[1])))
+                await self.text(*controls.metric_detail(report,self.scanner.settings,parts[2].upper() if len(parts)>2 else coins[0],int(parts[1]),parts[3] if len(parts)>3 else '1d'))
             elif cmd in ('/add','/remove','/interval','/window','/pause','/resume','/scan','/scope','/zip','/backup','/restore','/cancel'):
                 self.require_owner(sender)
                 if cmd=='/backup':await self.backup();return
@@ -216,7 +231,7 @@ class Telegram:
                     if action=='backup':await self.backup();return
                     if action=='scan':notice=await self.controller.scan_now()
                     elif action=='remove':notice=await self.controller.change('remove',parts[2],int(parts[3]));section='coins'
-                    elif action in ('exchange','type'):notice=await self.controller.change(action,parts[2],int(parts[3]));section='coverage'
+                    elif action in ('exchange','type'):notice='Old all-market controls retired. Use /route COIN exchange perp|spot.';section='coverage'
                     elif action=='set':
                         field=parts[2];value=int(parts[3])
                         if field in ('paused','send_zip','all_markets'):
@@ -234,16 +249,16 @@ class Telegram:
             elif data=='access':text,markup=telegram_technical.access(report)
             elif parts[0]=='research':
                 if parts[1]=='coins':text,markup=controls.metric_coins(self.controller.state.coins if self.controller else self.scanner.settings.coins)
-                elif parts[1]=='list':text,markup=controls.metric_list(report,parts[2],int(parts[3]))
-                elif parts[1]=='metric':text,markup=controls.metric_detail(report,self.scanner.settings,parts[2],int(parts[3]))
+                elif parts[1]=='list':text,markup=controls.metric_list(report,parts[2],int(parts[3]),parts[4] if len(parts)>4 else '1d')
+                elif parts[1]=='metric':text,markup=controls.metric_detail(report,self.scanner.settings,parts[2],int(parts[3]),parts[4] if len(parts)>4 else '1d')
                 else:return
             elif not report:await self.text('Waiting for the first completed scan.',self.navigation());return
             elif data=='marketzip':
                 await self.publish(report,force=True);return
             elif parts[0]=='markets' and len(parts)==3:
-                text,markup=telegram_markets.page(report,parts[1],int(parts[2]))
+                text,markup='All-market browsing was removed. Use /route or /technical.',self.navigation()
             elif parts[0]=='instrument' and len(parts)==3:
-                text,markup=telegram_markets.detail(report,parts[1],int(parts[2]))
+                text,markup='Old market buttons are retired. Use /panel.',self.navigation()
             else:return
             if len(text.encode('utf-16-le'))//2>3500:await self.text(text,markup);return
             await self.request('editMessageText',{'chat_id':self.chat_id,'message_id':msg['message_id'],
