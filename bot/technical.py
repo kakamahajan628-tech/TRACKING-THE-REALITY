@@ -1,15 +1,15 @@
-"""Five technical studies on closed, contiguous spot candles; no trade score.
+"""Eight technical studies on closed, contiguous instrument candles; no trade score.
 
 Seeds and history limits are explicit. These are local calculations, not values
 fetched from TradingView. Volume indicators use venue-native base-asset volume.
 """
 import time
+from .tracking import TIMEFRAMES
 import numpy as np
 import pandas as pd
 from .models import iso
 from .providers import validated_candles, DataError
 
-TIMEFRAMES={'5m':300,'1d':86400}
 DEFINITIONS=[
     {'id':'rsi','name':'RSI (14)','unit':'0–100','minimum':15,
      'method':'Wilder smoothing: seed mean of first 14 close gains/losses; next average = (13 × previous + change) / 14. RSI = 100 − 100/(1 + avg_gain/avg_loss). Flat gains and losses = 50; no losses = 100.',
@@ -20,13 +20,30 @@ DEFINITIONS=[
     {'id':'obv','name':'OBV / 20-bar change','unit':'base-asset volume','minimum':21,
      'method':'OBV starts at zero at the first retained candle. Add volume on a higher close, subtract on a lower close, unchanged on equal closes. Also report OBV[t] − OBV[t−20].',
      'note':'Absolute OBV depends on the retained history start. Compare the 20-bar change; this is not actual buyer/seller trade classification.'},
-    {'id':'ema','name':'EMA (20 / 50)','unit':'USD','minimum':51,
+    {'id':'ema','name':'EMA (20 / 50)','unit':'USDT','minimum':51,
      'method':'Each EMA starts at its first N-close simple mean; then EMA = alpha × close + (1−alpha) × previous, alpha=2/(N+1). Cross checks the last two closed bars.',
      'note':'EMA alignment describes the observed trend. A crossover does not establish future performance.'},
-    {'id':'macd','name':'MACD (12 / 26 / 9)','unit':'USD','minimum':35,
+    {'id':'macd','name':'MACD (12 / 26 / 9)','unit':'USDT','minimum':35,
      'method':'MACD = SMA-seeded EMA(12) − SMA-seeded EMA(26). Signal = SMA-seeded EMA(9) of available MACD values. Histogram = MACD − signal. Cross checks the last two closed bars.',
      'note':'Values depend on venue, candle timeframe, history length and initialization; exact TradingView parity is not claimed.'},
+    {'id':'atr','name':'ATR (14)','unit':'USDT / percent','minimum':15,
+     'method':'True range = max(high-low, abs(high-previous close), abs(low-previous close)); mean seed of 14 ranges, then Wilder smoothing alpha=1/14.',
+     'note':'Volatility magnitude, not direction; percentage uses the last closed price.'},
+    {'id':'bb','name':'Bollinger Bands (20 / 2)','unit':'USDT / ratio','minimum':20,
+     'method':'20-close SMA plus/minus 2 population standard deviations; width=(upper-lower)/middle; percent B=(close-lower)/(upper-lower).',
+     'note':'A band touch is not a reversal forecast. Zero width makes percent B unavailable.'},
+    {'id':'adx','name':'ADX / +DI / -DI (14)','unit':'0–100','minimum':28,
+     'method':'Directional movements use mutually exclusive positive high/low changes; Wilder-smoothed TR and DM over 14; DX=100*abs(+DI-minusDI)/(+DI+minusDI), then Wilder-14 mean seed.',
+     'note':'ADX describes directional strength; +DI/-DI provide direction context, not a trade instruction.'},
 ]
+
+
+def wilder(values,period=14):
+    values=np.asarray(values,dtype=float);out=np.full(len(values),np.nan)
+    if len(values)<period:return out
+    out[period-1]=np.mean(values[:period])
+    for i in range(period,len(values)):out[i]=(out[i-1]*(period-1)+values[i])/period
+    return out
 
 
 def ema(values,period):
@@ -68,7 +85,7 @@ def zone(value,low,high):return 'upper zone' if value>=high else 'lower zone' if
 def studies(frame,timeframe,now=None):
     now=time.time() if now is None else now;period=TIMEFRAMES[timeframe]
     pack={'timeframe':timeframe,'period_seconds':period,'source':None,'as_of':None,'history_start':None,
-          'bars':0,'quote':'USD','market':'spot','status':'unavailable','rows':[],'chart':[]}
+          'bars':0,'quote':'USDT','market':'unavailable','status':'unavailable','rows':[],'chart':[]}
     problem='Closed candles unavailable for this coin and timeframe.'
     if isinstance(frame,pd.DataFrame):
         try:
@@ -77,7 +94,10 @@ def studies(frame,timeframe,now=None):
             if frame.attrs.get('period')!=period:raise DataError('Candle timeframe mismatch')
             source=frame.attrs.get('source')
             if not isinstance(source,str) or not source:raise DataError('Candle provenance missing')
+            attributes=dict(frame.attrs)
             frame=validated_candles(frame.reset_index().to_dict('records'),source,period,now).tail(260)
+            frame.attrs.update(attributes)
+            pack.update(quote=attributes.get('quote','USD'),market=attributes.get('market','spot'),symbol=attributes.get('symbol'),volume_unit=attributes.get('volume_unit','base-asset volume'))
             close=frame.close.to_numpy(dtype=float);volume=frame.volume.to_numpy(dtype=float)
             stamp=int(frame.index[-1])+period
             pack.update(source=source,as_of=iso(stamp),history_start=iso(int(frame.index[0])),bars=len(frame),
@@ -88,6 +108,12 @@ def studies(frame,timeframe,now=None):
     else:frame=None
     for definition in DEFINITIONS:
         row={**definition,'status':'unavailable','value':None,'reading':problem,'as_of':pack['as_of'],'source':pack['source']}
+        row['frequency']=timeframe
+        if frame is not None and frame.attrs.get('derivation'):row['note']+=' '+frame.attrs['derivation']
+        if definition['id'] in ('ema','macd'):row['unit']=pack['quote']
+        if definition['id']=='atr':row['unit']=pack['quote']+' / percent'
+        if definition['id']=='bb':row['unit']=pack['quote']+' / ratio'
+        if definition['id']=='obv':row['unit']=pack.get('volume_unit','base-asset volume')
         if frame is not None:
             row['reading']=f"Needs {definition['minimum']} consecutive closed bars; received {len(frame)}."
             if len(frame)>=definition['minimum']:
@@ -113,6 +139,25 @@ def studies(frame,timeframe,now=None):
                     value={'macd':float(line[-1]),'signal':float(signal[-1]),'histogram':float(hist[-1])}
                     direction=position(line[-1],signal[-1])
                     reading=('positive histogram' if direction>0 else 'negative histogram' if direction<0 else 'histogram near zero')+'; '+crossed(line,signal)
+                elif key in ('atr','adx'):
+                    high=frame.high.to_numpy(dtype=float);low=frame.low.to_numpy(dtype=float)
+                    tr=np.maximum(high[1:]-low[1:],np.maximum(abs(high[1:]-close[:-1]),abs(low[1:]-close[:-1])))
+                    atr=wilder(tr)
+                    if key=='atr':
+                        value={'atr':float(atr[-1]),'percent_of_close':float(atr[-1]/close[-1]*100)};reading='Closed-bar volatility magnitude'
+                    else:
+                        up=np.diff(high);down=-np.diff(low)
+                        plus=wilder(np.where((up>down)&(up>0),up,0.));minus=wilder(np.where((down>up)&(down>0),down,0.))
+                        if np.all(atr[13:]>0):
+                            p=100*plus[13:]/atr[13:];m=100*minus[13:]/atr[13:];den=p+m
+                            dx=np.divide(100*np.abs(p-m),den,out=np.zeros_like(den),where=den>0)
+                            value={'adx':float(wilder(dx)[-1]),'plus_di':float(p[-1]),'minus_di':float(m[-1])};reading='Directional strength; compare +DI and -DI'
+                        else:row['reading']='Zero true range; directional strength undefined.'
+                elif key=='bb':
+                    middle=float(np.mean(close[-20:]));sd=float(np.std(close[-20:],ddof=0))
+                    value={'middle':middle,'upper':middle+2*sd,'lower':middle-2*sd,'width_fraction':4*sd/middle}
+                    if sd>0:value['percent_b']=(float(close[-1])-value['lower'])/(4*sd)
+                    reading='20-bar bands; zero-width percent B is omitted'
                 if value is not None:
                     numbers=list(value.values()) if isinstance(value,dict) else [value]
                     if all(np.isfinite(x) for x in numbers):row.update(value=value,status=pack['status'],reading=reading)
@@ -121,8 +166,8 @@ def studies(frame,timeframe,now=None):
     return pack
 
 
-def technical_pack(daily,intraday,now=None):
-    return {'5m':studies(intraday,'5m',now),'1d':studies(daily,'1d',now)}
+def technical_pack(daily,intraday,now=None,hourly=None,four_hour=None):
+    return {tf:studies(frame,tf,now) for tf,frame in [('5m',intraday),('1h',hourly),('4h',four_hour),('1d',daily)]}
 
 
 def compact(row):
@@ -132,4 +177,8 @@ def compact(row):
     if row['id']=='obv':return 'Δ20 '+number(value['change_20_bars'])
     if row['id']=='ema':return number(value['ema20'])+' / '+number(value['ema50'])
     if row['id']=='macd':return 'hist '+number(value['histogram'])
+    if row['id']=='atr':return number(value['atr'])+' ('+number(value['percent_of_close'])+'%)'
+    if row['id']=='bb':return number(value['lower'])+' / '+number(value['middle'])+' / '+number(value['upper'])
+    if row['id']=='adx':return number(value['adx'])+' | +DI '+number(value['plus_di'])+' / -DI '+number(value['minus_di'])
+    if row['id']=='funding':return number(value*100)+'%'
     return number(value)
