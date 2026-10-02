@@ -1,4 +1,4 @@
-"""Book mathematics. All return models use closed, aligned UTC daily candles.
+"""Book mathematics. Return models use closed, aligned candles; beta is daily.
 
 House choices are recorded at the metric, never presented as vendor measurements.
 """
@@ -77,7 +77,7 @@ def garch_forecast(returns):
             'omega_percent_squared':float(fit.x[0]), 'alpha':float(fit.x[1]), 'beta':float(fit.x[2])}
 
 
-def analyze_prices(symbol, histories, window=180, rf_annual=0, now=None):
+def analyze_prices(symbol, histories, window=180, rf_annual=0, now=None, period=86400):
     import time
     now = time.time() if now is None else now
     asset = histories.get(symbol)
@@ -85,22 +85,30 @@ def analyze_prices(symbol, histories, window=180, rf_annual=0, now=None):
         r = Results()
         for i in range(1, 81):
             r.missing(i, 'Need at least 91 valid closed UTC daily candles for baseline research')
+        if asset is not None and len(asset)>=2:
+            meta=dict(source=asset.attrs.get('source','unknown'),as_of=iso(int(asset.index[-1])+period),
+                      sample=len(asset)-1,status='ok' if now-(int(asset.index[-1])+period)<=period+(7200 if period==86400 else 120) else 'stale')
+            latest=float(asset.close.iloc[-1]/asset.close.iloc[-2]-1)
+            r.put(34,latest,'fraction','Last closed daily bar return; limited history',**meta)
+            r.put(35,np.log1p(latest),'fraction','Last closed daily log return; limited history',**meta)
+            r.put(36,float(asset.close.iloc[-1]/asset.close.iloc[0]-1),'fraction','Cumulative return over available daily history',**meta)
         return r
     source = asset.attrs.get('source', 'unknown')
-    cutoff = int(asset.index[-1])+86400
+    cutoff = int(asset.index[-1])+period
+    periods_per_year = 365*86400/period
     # Daily observations remain fresh until the next daily release plus a two-hour grace period.
-    r = Results(source, iso(cutoff), min(len(asset)-1, window), now-cutoff > 93600)
+    r = Results(source, iso(cutoff), min(len(asset)-1, window), now-cutoff > period+(7200 if period==86400 else 120))
     selected = asset.tail(window+1)
     y = selected.close.pct_change(fill_method=None).dropna().to_numpy()
     prices = selected.close.to_numpy()
     n = len(y)
-    rf = (1+rf_annual)**(1/365)-1
+    rf = (1+rf_annual)**(1/periods_per_year)-1
     sd = np.std(y, ddof=1)
     mean = np.mean(y)
     wealth = np.r_[1., np.cumprod(1+y)]
     dd = wealth/np.maximum.accumulate(wealth)-1
     values = {34:y[-1], 35:np.log1p(y[-1]), 36:wealth[-1]-1, 37:mean,
-              38:np.median(y), 39:sd**2, 40:sd, 41:sd*np.sqrt(365),
+              38:np.median(y), 39:sd**2, 40:sd, 41:sd*np.sqrt(periods_per_year),
               44:np.sqrt(np.mean(np.minimum(y, 0)**2)), 45:np.mean(np.minimum(y, 0)**2),
               46:stats.skew(y, bias=True), 47:stats.kurtosis(y, fisher=True, bias=True),
               48:dd[-1], 49:abs(dd.min()), 60:np.quantile(-y, .95, method='linear'),
@@ -121,9 +129,9 @@ def analyze_prices(symbol, histories, window=180, rf_annual=0, now=None):
     for ret in y[30:]:
         v = .94*v+.06*ret**2
     r.put(43, np.sqrt(v), 'daily volatility fraction', 'Next-day EWMA forecast; lambda=.94; seed mean squared first 30 returns')
-    r.calc(51, lambda: divide(np.mean(y-rf), np.std(y-rf, ddof=1))*np.sqrt(365), 'ratio', f'Risk-free annual assumption={rf_annual}; asset buy-and-hold')
-    r.calc(52, lambda: divide(mean, np.sqrt(np.mean(np.minimum(y,0)**2)))*np.sqrt(365), 'ratio', 'MAR=0; all observations in denominator')
-    r.calc(53, lambda: divide(wealth[-1]**(365/n)-1, abs(dd.min())), 'ratio', 'Geometric CAGR / maximum drawdown; same daily path')
+    r.calc(51, lambda: divide(np.mean(y-rf), np.std(y-rf, ddof=1))*np.sqrt(periods_per_year), 'ratio', f'Risk-free annual assumption={rf_annual}; asset buy-and-hold')
+    r.calc(52, lambda: divide(mean, np.sqrt(np.mean(np.minimum(y,0)**2)))*np.sqrt(periods_per_year), 'ratio', 'MAR=0; all observations in denominator')
+    r.calc(53, lambda: divide(wealth[-1]**(periods_per_year/n)-1, abs(dd.min())), 'ratio', 'Geometric CAGR / maximum drawdown; same daily path')
     r.calc(67, lambda: divide(np.maximum(y,0).sum(), np.maximum(-y,0).sum()), 'ratio', 'Omega threshold=0')
     rng = np.random.default_rng(136)
     simulations = rng.normal(mean, sd, 10000)
@@ -163,6 +171,8 @@ def analyze_prices(symbol, histories, window=180, rf_annual=0, now=None):
         r.put(87, np.mean(np.abs(y)/selected.quote_volume.iloc[1:].to_numpy()), '1/USD', 'Mean daily |return| / actual venue VWAP × base volume; single venue')
     btc = histories.get('BTC')
     eth = histories.get('ETH')
+    if period!=86400:
+        return r  # All beta/benchmark regressions are deliberately daily-only.
     if btc is None:
         return r
     # A venue switch never joins benchmark histories from two venues.
@@ -180,7 +190,7 @@ def analyze_prices(symbol, histories, window=180, rf_annual=0, now=None):
         return r
     a, b = returns.asset.to_numpy(), returns.BTC.to_numpy()
     count=len(a)
-    baseline = dict(source=source+'; benchmark BTC/USD', as_of=iso(int(returns.index[-1])+86400), sample=count)
+    baseline = dict(source=source+'; benchmark BTC/'+asset.attrs.get('quote','USD'), as_of=iso(int(returns.index[-1])+86400), sample=count)
     try:
         raw=beta(a,b)
         fit=sm.OLS(a,sm.add_constant(b)).fit(cov_type='HAC',cov_kwds={'maxlags':5,'use_correction':True},use_t=False)
@@ -226,19 +236,20 @@ def analyze_prices(symbol, histories, window=180, rf_annual=0, now=None):
                 ct=coint(logs.asset,logs.BTC,trend='c',autolag='aic')
                 r.put(75,{'statistic':ct[0],'p_value':ct[1]},'test','Engle-Granger on log prices; constant; AIC. I(1) assumptions require independent review.',**baseline)
                 spread=sm.OLS(logs.asset,sm.add_constant(logs.BTC)).fit().resid.to_numpy()
+                if np.std(spread)<1e-12:raise ValueError('Degenerate residual spread')
                 phi=sm.OLS(spread[1:],sm.add_constant(spread[:-1])).fit().params[1]
                 if ct[1]<.05 and 0<abs(phi)<1:
                     r.put(76,np.log(.5)/np.log(abs(phi)),'days',f'AR(1) log-price residual spread; phi={phi:.5f}; magnitude decay, not a guaranteed recovery',**baseline)
                 else:r.missing(76,'Cointegration/stable decay not supported by selected model')
                 gc=grangercausalitytests(np.column_stack([a,b]),[2],verbose=False)[2][0]['ssr_ftest']
                 r.put(77,{'F':gc[0],'p_value':gc[1]},'test','BTC → asset; predeclared 2 lags; classical F may fail under heteroskedasticity; not economic causation',**baseline)
-            except (ValueError,np.linalg.LinAlgError):
+            except (ValueError,IndexError,np.linalg.LinAlgError):
                 pass
     else:
         for i in (75,76,77):r.missing(i,'BTC against itself is a degenerate test')
     if eth is not None and eth.attrs.get('source')==source:
         f=pd.concat({'asset':asset.close,'BTC':btc.close,'ETH':eth.close},axis=1).dropna().pct_change(fill_method=None).dropna().tail(window)
-        if len(f)>=90:
+        if len(f)>=90 and f.index[-1]==asset.index[-1] and np.all(np.diff(f.index)==86400):
             r.calc(4,lambda:beta(f.asset,f.ETH),'beta','ETH benchmark',**(baseline|{'sample':len(f)}))
             X=sm.add_constant(f[['BTC','ETH']])
             if np.linalg.matrix_rank(X)==3:
