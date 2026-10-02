@@ -1,10 +1,13 @@
 import csv
 import io
 import json
+import time
+from datetime import datetime
 from pathlib import Path
 from zipfile import ZipFile, ZIP_DEFLATED
-from .markets import market_digest
 from .technical import compact
+from .tracking import ist
+from decimal import Decimal
 
 ROOT=Path(__file__).parent
 HANDBOOK=json.loads((ROOT/'data/handbook.json').read_text(encoding='utf-8')) if (ROOT/'data/handbook.json').exists() else []
@@ -20,24 +23,22 @@ def html_report(report=None,live=False):
         return json.dumps(value,ensure_ascii=False,allow_nan=False).replace('<','\\u003c').replace('>','\\u003e').replace('&','\\u0026').replace('\u2028','\\u2028').replace('\u2029','\\u2029')
     return (template.replace('/*CSS*/',(ROOT/'web/style.css').read_text(encoding='utf-8'))
             .replace('/*BOOT*/','const INITIAL='+safe_json(report)+'; const HANDBOOK='+safe_json(HANDBOOK)+'; const LIVE='+str(live).lower()+';')
-            .replace('/*APP*/',(ROOT/'web/app.js').read_text(encoding='utf-8'))
-            .replace('/*MARKETS*/',(ROOT/'web/markets.js').read_text(encoding='utf-8'))
-            .replace('/*TECHNICAL*/',(ROOT/'web/technical.js').read_text(encoding='utf-8'))
-            .replace('/*CONTROLS*/',(ROOT/'web/control.js').read_text(encoding='utf-8')))
+            .replace('/*APP*/',(ROOT/'web/app.js').read_text(encoding='utf-8')))
 
 
 def csv_report(report):
     buf=io.StringIO(newline='')
     writer=csv.writer(buf)
-    writer.writerow(['scan_id','coin','metric_id','name','status','value','unit','source','as_of','frequency','sample','note'])
+    writer.writerow(['scan_id','coin','view_timeframe','metric_id','name','status','value','unit','source','as_of_IST','frequency','sample','note'])
     names={m['id']:m['name'] for m in report['catalog']}
     def safe(value):
         if isinstance(value,(dict,list)):value=json.dumps(value,ensure_ascii=False,allow_nan=False)
         if isinstance(value,str) and value.startswith(('=','+','-','@','\t','\r')):value="'"+value
         return value
     for coin in report['coins']:
-        for m in coin['metrics']:
-            writer.writerow([safe(x) for x in [report['scan_id'],coin['symbol'],m['id'],names[m['id']],m['status'],m['value'],m['unit'],m['source'],m['as_of'],m['frequency'],m['sample'],m['note']]])
+        for tf,rows in coin.get('metric_frames',{'1d':coin['metrics']}).items():
+            for m in rows:
+                writer.writerow([safe(x) for x in [report['scan_id'],coin['symbol'],tf,m['id'],names[m['id']],m['status'],m['value'],m['unit'],m['source'],ist(m['as_of']),m['frequency'],m['sample'],m['note']]])
     return '\ufeff'+buf.getvalue()
 
 
@@ -51,42 +52,49 @@ def report_bundle(report):
         if report.get('market_universe',{}).get('enabled'):
             z.writestr('markets.csv',markets_csv(report))
             z.writestr('aggregators.json',json.dumps(report.get('aggregators',{}),ensure_ascii=False,allow_nan=False))
-        z.writestr('READ-ME.txt','Open report.html in a browser. metrics.csv contains 136 records per research-watchlist coin.\ntechnical.csv contains five additional studies on 5m and daily closed spot candles per watchlist coin.\nmarkets.csv contains all discovered exchange spot/perpetual snapshots, NOT 136 metrics per instrument.\naggregators.json contains separately sourced CMC/CoinGlass context when configured.\nMissing is not zero. Source timestamps differ. Scenarios and models are not market observations.\n'+report['mode'])
+        z.writestr('READ-ME.txt','Open report.html. Selected USDT instruments only. metrics.csv includes 136 IDs per coin per view; unsupported frequencies remain unavailable. Technical: 8 closed-candle studies plus 2 native derivative observations. Beta daily only. Display times IST; candle boundaries retain exchange UTC conventions. USD observations are never silently converted to USDT.\n'+report['mode'])
     return buf.getvalue()
 
 
 def summary(report,only_coin=None):
-    title=f"ATLAS 136 | {report['scan_boundary'][:16].replace('T',' ')} UTC"
-    lines=[title,report['mode']]
-    if not only_coin and report.get('market_universe',{}).get('enabled'):
-        lines.extend([market_digest(report['market_universe']),''])
-    lines.extend([f"DEEP RESEARCH: {len(report['coins'])} watchlist coins · timer {report.get('interval_seconds',300)//60} min · {report['lookback_days']}d window",''])
-    for coin in report['coins']:
-        if only_coin and coin['symbol']!=only_coin:continue
-        q=coin['quote']; metrics={m['id']:m for m in coin['metrics']}
-        price=(f"${q['price']:,.2f}" if q['price']>=10 else f"${q['price']:,.4f}") if q else 'price N/A'
-        if q and q['status']=='stale':price+=' [STALE]'
-        daily=metrics[34]
-        move=f"{daily['value']*100:+.2f}% 1d" if daily['status']=='ok' else '1d N/A'
-        beta=metrics[3]
-        exposure=f"β {beta['value']:.2f}" if beta['status']=='ok' else 'β N/A'
-        lines.append(f"{coin['symbol']}  {price} | {move} | {exposure} | {coin['coverage'].get('ok',0)}/136 current")
-        tech=coin.get('technical',{}).get('5m')
-        if tech:
-            lines.append('  TA 5m: '+' · '.join(f"{m['id'].upper()} {compact(m) if m['status']=='ok' else m['status'].upper()}" for m in tech['rows']))
-    lines+=['','Current = available observations/calculations, not accuracy.','Models, scenarios, imported and missing data are separate in the full report.',
-            'Sources and timestamps: Metrics / Open dashboard; /report downloads the complete ZIP.','No trading orders or guaranteed directional signals.']
-    if report['issues']:lines.append(f"Feed issues: {len(report['issues'])}; details in report.")
+    coins=[c for c in report['coins'] if not only_coin or c['symbol']==only_coin]
+    lines=['ATLAS | '+ist(report['generated_at']), f"{len(report['coins'])} tracked | USDT | {report.get('interval_seconds',300)//60} min loop"]
+    if time.time()-datetime.fromisoformat(report['generated_at']).timestamp()>report.get('interval_seconds',300)*2:lines.append('OLD REPORT - last completed snapshot')
+    if not only_coin and len(coins)>8:
+        def movement(coin):
+            row=next((r for r in coin.get('metric_frames',{}).get('5m',[]) if r['id']==34),{})
+            return abs(row['value']) if row.get('status')=='ok' else -1
+        coins=sorted(coins,key=movement,reverse=True)
+        lines.append('Top 8 by absolute last closed 5m move')
+    if 'SYNTHETIC' in report['mode']:lines.append('DEMO - SYNTHETIC DATA')
+    if not coins:return 'No completed report for this coin.'
+    for c in coins[:8]:
+        q=c.get('quote');route=c.get('route') or {};m={r['id']:r for r in c['metrics']}
+        price=format(Decimal(str(q['price'])),'f')+' USDT' if q else 'price unavailable'
+        state=' ['+q['status']+']' if q and q['status']!='ok' else ''
+        lines+=['',c['symbol']+' | '+price+state,route.get('exchange','no source')+' | '+route.get('market','unavailable')]
+        moves=[]
+        for tf,rows in c.get('metric_frames',{}).items():
+            row=next((r for r in rows if r['id']==34),{})
+            moves.append(tf+(' '+f"{row['value']*100:+.2f}%" if row.get('status')=='ok' else ' N/A'))
+        lines.append(' | '.join(moves))
+        lines.append('Daily beta BTC '+(f"{m[3]['value']:.2f}" if m[3]['status']=='ok' else 'N/A')+' / ETH '+(f"{m[4]['value']:.2f}" if m[4]['status']=='ok' else 'N/A'))
+        if only_coin:
+            lines.append('Quote time: '+ist(q.get('as_of') if q else None))
+            lines.append('Daily close: '+ist(m[3].get('as_of')))
+    if len(coins)>8:lines.append(f"\nShowing 8/{len(coins)}. /coin SYMBOL or /website for the rest.")
+    lines+=['','Moves = last closed bar return, not live price change.','/technical COIN 1h | /metrics COIN | /website']
+    if report.get('issues'):lines.append(f"{len(report['issues'])} data issues - /access")
     return '\n'.join(lines)
 
 
 def technical_csv(report):
     buf=io.StringIO(newline='');writer=csv.writer(buf)
-    writer.writerow(['scan_id','coin','timeframe','indicator','status','value','unit','source','as_of','history_start','bars','reading','method'])
+    writer.writerow(['scan_id','coin','timeframe','indicator','status','value','unit','source','as_of_IST','history_start_IST','bars','reading','method'])
     for coin in report['coins']:
         for tf,pack in coin.get('technical',{}).items():
             for row in pack['rows']:
-                values=[report['scan_id'],coin['symbol'],tf,row['id'],row['status'],json.dumps(row['value'],allow_nan=False),row['unit'],pack['source'],pack['as_of'],pack['history_start'],pack['bars'],row['reading'],row['method']]
+                values=[report['scan_id'],coin['symbol'],tf,row['id'],row['status'],json.dumps(row['value'],allow_nan=False),row['unit'],row['source'],ist(row['as_of']),ist(pack['history_start']),pack['bars'],row['reading'],row['method']]
                 writer.writerow(["'"+v if isinstance(v,str) and v.startswith(('=','+','-','@','\t','\r')) else v for v in values])
     return '\ufeff'+buf.getvalue()
 
