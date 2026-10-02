@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 import os
 import re
 from urllib.parse import urlsplit
+from .tracking import MAX_COINS, EXCHANGES, symbol_valid
 
 DEFAULT_COINS = 'BTC,ETH,SOL,XRP,ADA,DOGE,LINK,AVAX,DOT,LTC'
 
@@ -32,8 +33,8 @@ class Settings:
     demo: bool = False
     rf_annual: float = 0.0
     external_file: str = ''
-    enable_market_universe: bool = True
-    market_exchanges: list[str] = field(default_factory=lambda: ['binance','bitget','bybit','okx'])
+    enable_market_universe: bool = False
+    market_exchanges: list[str] = field(default_factory=lambda: list(EXCHANGES))
     market_types: list[str] = field(default_factory=lambda: ['spot','perpetual'])
     market_detail_batch: int = 10
     enable_cmc: bool = True
@@ -45,11 +46,13 @@ class Settings:
     control_state_file: str = 'runtime/control.json'
     control_redis_url: str = ''
     control_redis_token: str = field(default='',repr=False)
+    coingecko_api_key: str = field(default='',repr=False)
+    routes: dict = field(default_factory=dict)
 
     def __post_init__(self):
         self.coins = list(dict.fromkeys(c.upper().strip() for c in self.coins))
-        if not 1 <= len(self.coins) <= 20 or any(not re.fullmatch(r'[A-Z0-9]{2,12}', c) for c in self.coins):
-            raise ValueError('COINS must contain 1–20 unique asset symbols, e.g. BTC,ETH,SOL')
+        if not 1 <= len(self.coins) <= MAX_COINS or any(not symbol_valid(c) for c in self.coins):
+            raise ValueError(f'COINS must contain 1–{MAX_COINS} unique asset symbols')
         if type(self.interval) is not int or not 300<=self.interval<=86400 or self.interval%60 or not 90 <= self.window <= 365:
             raise ValueError('SCAN_SECONDS must be whole minutes from 300 to 86400; LOOKBACK_DAYS must be 90–365')
         if bool(self.telegram_token) != bool(self.telegram_chat):
@@ -58,8 +61,11 @@ class Settings:
             raise ValueError('RISK_FREE_ANNUAL must be greater than -1')
         self.market_exchanges=list(dict.fromkeys(x.strip().lower() for x in self.market_exchanges))
         self.market_types=list(dict.fromkeys(x.strip().lower() for x in self.market_types))
-        if not self.market_exchanges or set(self.market_exchanges)-{'binance','bitget','bybit','okx'}:
-            raise ValueError('MARKET_EXCHANGES: binance,bitget,bybit,okx')
+        if set(self.market_exchanges)-set(EXCHANGES)-{'binance'}:raise ValueError('Unknown tracking exchange')
+        # Old Render variables must not silently re-enable a removed universe scan.
+        self.enable_market_universe=False
+        self.market_exchanges=list(EXCHANGES)
+        self.enable_ws=False
         if not self.market_types or set(self.market_types)-{'spot','perpetual'}:
             raise ValueError('MARKET_TYPES: spot,perpetual')
         if not 0<=self.market_detail_batch<=20 or self.vendor_refresh_seconds<900:
@@ -88,8 +94,8 @@ class Settings:
                    enable_coinmetrics=yes('ENABLE_COINMETRICS', 'true'), enable_defillama=yes('ENABLE_DEFILLAMA', 'true'),
                    demo=yes('DEMO_MODE', 'false'), rf_annual=float(os.getenv('RISK_FREE_ANNUAL', '0')),
                    external_file=os.getenv('EXTERNAL_METRICS_FILE', ''),
-                   enable_market_universe=yes('ENABLE_MARKET_UNIVERSE','true'),
-                   market_exchanges=os.getenv('MARKET_EXCHANGES','binance,bitget,bybit,okx').split(','),
+                   enable_market_universe=False,
+                   market_exchanges=list(EXCHANGES),
                    market_types=os.getenv('MARKET_TYPES','spot,perpetual').split(','),
                    market_detail_batch=int(os.getenv('MARKET_DETAIL_BATCH','10')),
                    enable_cmc=yes('ENABLE_CMC','true'),cmc_api_key=os.getenv('CMC_API_KEY',''),
@@ -98,4 +104,5 @@ class Settings:
                    public_url=os.getenv('PUBLIC_BASE_URL','') or os.getenv('RENDER_EXTERNAL_URL',''),
                    telegram_owner_id=os.getenv('TELEGRAM_OWNER_ID',''),
                    control_state_file=os.getenv('CONTROL_STATE_FILE','runtime/control.json'),
-                   control_redis_url=os.getenv('CONTROL_REDIS_URL',''),control_redis_token=os.getenv('CONTROL_REDIS_TOKEN',''))
+                   control_redis_url=os.getenv('CONTROL_REDIS_URL',''),control_redis_token=os.getenv('CONTROL_REDIS_TOKEN',''),
+                   coingecko_api_key=os.getenv('COINGECKO_API_KEY',''))
