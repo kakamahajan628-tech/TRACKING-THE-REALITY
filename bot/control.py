@@ -11,10 +11,12 @@ import json
 import os
 import re
 import time
-from dataclasses import asdict,dataclass,replace
+import zlib
+from dataclasses import asdict,dataclass,replace,field
 from pathlib import Path
 import httpx
 from .models import iso
+from .tracking import MAX_COINS, EXCHANGES, symbol_valid, validate_routes
 
 
 class ControlError(ValueError):pass
@@ -26,26 +28,30 @@ class Preferences:
     interval: int = 300
     window: int = 180
     paused: bool = False
-    all_markets: bool = True
+    all_markets: bool = False
     exchanges: list[str] = None
     market_types: list[str] = None
-    send_zip: bool = True
+    send_zip: bool = False
     revision: int = 0
-    version: int = 1
+    version: int = 2
+    routes: dict = field(default_factory=dict)
 
     def validate(self):
         if not isinstance(self.coins,list) or any(not isinstance(c,str) for c in self.coins):raise ControlError('Coins must be a list of symbols.')
         self.coins=list(dict.fromkeys(c.strip().upper() for c in self.coins))
-        if not 1<=len(self.coins)<=20 or any(not re.fullmatch(r'[A-Z0-9]{2,12}',c) for c in self.coins):
-            raise ControlError('Use 1–20 coin symbols, e.g. BTC,SOL,DOGE. Keep one coin, or pause the loop.')
+        if not 1<=len(self.coins)<=MAX_COINS or any(not symbol_valid(c) for c in self.coins):
+            raise ControlError(f'Use 1–{MAX_COINS} coin symbols. Keep one coin, or pause the loop.')
         if type(self.interval) is not int or not 300<=self.interval<=86400 or self.interval%60:
             raise ControlError('Scan interval must be whole minutes between 5 and 1440.')
         if type(self.window) is not int or not 90<=self.window<=365:raise ControlError('Research window must be 90–365 days.')
         if any(type(x) is not bool for x in (self.paused,self.all_markets,self.send_zip)):raise ControlError('Invalid switch value.')
-        for items,allowed in [(self.exchanges,{'binance','bitget','bybit','okx'}),(self.market_types,{'spot','perpetual'})]:
+        if self.all_markets:raise ControlError('Entire-market scanning has been removed. Only your tracking list is measured.')
+        for items,allowed in [(self.exchanges,set(EXCHANGES)),(self.market_types,{'spot','perpetual'})]:
             if not isinstance(items,list) or not items or any(not isinstance(x,str) or x not in allowed for x in items) or len(items)!=len(set(items)):
                 raise ControlError('Select at least one supported exchange and product type.')
-        if type(self.revision) is not int or self.revision<0 or type(self.version) is not int or self.version!=1:raise ControlError('Unsupported settings version.')
+        if type(self.revision) is not int or self.revision<0 or type(self.version) is not int or self.version!=2:raise ControlError('Unsupported settings version.')
+        try:self.routes=validate_routes(self.routes,self.coins)
+        except ValueError as exc:raise ControlError(str(exc)) from None
         return self
 
     @classmethod
@@ -56,6 +62,11 @@ class Preferences:
     @classmethod
     def decode(cls,value):
         try:
+            if isinstance(value,dict) and type(value.get('version')) is int and value['version']==1:
+                expected=set(cls.__dataclass_fields__)-{'routes'}
+                if set(value)!=expected:raise ControlError('Invalid legacy backup schema.')
+                value=copy.deepcopy(value)
+                value.update(version=2,routes={},all_markets=False,exchanges=list(EXCHANGES),market_types=['perpetual','spot'],send_zip=False)
             if not isinstance(value,dict) or set(value)!=set(cls.__dataclass_fields__):raise ControlError('Invalid backup schema.')
             return cls(**value).validate()
         except (TypeError,AttributeError) as exc:raise ControlError('Invalid settings data.') from exc
@@ -151,10 +162,14 @@ class Controller:
             new=copy.deepcopy(self.state)
             if operation in ('add','remove','replace'):
                 coins=value if isinstance(value,list) else re.split(r'[,\s]+',str(value).strip().upper())
-                if not coins or any(not re.fullmatch(r'[A-Z0-9]{2,12}',c) for c in coins):raise ControlError('Send symbols such as SOL,DOGE (without USDT pair suffixes).')
+                if not coins or any(not symbol_valid(c) for c in coins):raise ControlError('Send exact base symbols, e.g. SOL,DOGE (no /USDT suffix).')
                 if operation=='add':new.coins=list(dict.fromkeys(new.coins+coins))
                 elif operation=='remove':new.coins=[c for c in new.coins if c not in coins]
                 else:new.coins=coins
+            elif operation=='route':
+                coin=value['coin']
+                if coin not in new.coins:raise ControlError('Add this coin to tracking first.')
+                new.routes[coin]={'exchange':value.get('exchange','auto'),'market':value.get('market','auto')}
             elif operation in ('interval','window','paused','send_zip','all_markets'):setattr(new,operation,value)
             elif operation in ('exchange','type'):
                 attr='exchanges' if operation=='exchange' else 'market_types'
@@ -194,17 +209,23 @@ class Controller:
                     in_progress=self.in_progress,active_revision=self.active_revision,next_scan_at=next_at,
                     settings_pending=not report or report.get('control_revision')!=self.state.revision,
                     report_generated_at=report['generated_at'] if report else None,
-                    public_url=self.settings.public_url)
+                    public_url=self.settings.public_url,max_coins=MAX_COINS)
 
     def backup(self):
         raw=json.dumps(asdict(self.state),separators=(',',':')).encode()
-        return base64.urlsafe_b64encode(raw).decode()
+        return 'z.'+base64.urlsafe_b64encode(zlib.compress(raw)).decode()
 
     @staticmethod
     def decode_backup(encoded):
         if len(encoded)>6000:raise ControlError('Backup is too large.')
-        try:return asdict(Preferences.decode(json.loads(base64.b64decode(encoded,altchars=b'-_',validate=True))))
-        except (ValueError,TypeError,UnicodeError):raise ControlError('Invalid backup. Copy the complete /restore command from /backup.') from None
+        try:
+            compressed=encoded.startswith('z.')
+            raw=base64.b64decode(encoded[2:] if compressed else encoded,altchars=b'-_',validate=True)
+            if compressed:
+                decoder=zlib.decompressobj();raw=decoder.decompress(raw,32769)
+                if len(raw)>32768 or not decoder.eof or decoder.unused_data:raise ValueError('Invalid compressed backup')
+            return asdict(Preferences.decode(json.loads(raw)))
+        except (ValueError,TypeError,UnicodeError,zlib.error):raise ControlError('Invalid backup. Copy the complete /restore command from /backup.') from None
 
     async def wait(self,seconds=30):
         try:await asyncio.wait_for(self.wake.wait(),timeout=max(.01,min(seconds,30)))
