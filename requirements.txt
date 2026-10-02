@@ -7,3 +7,4 @@ pandas>=2.2,<3
 scipy>=1.15,<2
 statsmodels>=0.14.4,<0.15
 python-dotenv>=1.0,<2
+ccxt==4.5.84
