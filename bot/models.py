@@ -61,7 +61,7 @@ class Results:
     def calc(self, i, fn, *args, **kwargs):
         try:
             self.put(i, fn(), *args, **kwargs)
-        except (ValueError, ZeroDivisionError, FloatingPointError, IndexError) as exc:
+        except (ValueError, ZeroDivisionError, FloatingPointError, OverflowError, IndexError) as exc:
             self.missing(i, str(exc))
 
     def missing(self, i, reason):
